@@ -1,0 +1,24 @@
+version: '3'
+
+vars:
+  OUTPUT_PATH: "odin-out"
+
+tasks:
+  clean:
+    cmds:
+      - rm -rf {{.OUTPUT_PATH}}
+
+  build:
+    dir: "{{.OUTPUT_PATH}}"
+    cmds:
+      - odin build ../libmath.odin -file -build-mode:shared -out:libmath.so
+      - zig build-exe ../zigmain.zig -femit-bin=zigmain -fstrip -O ReleaseSmall -target native -mcpu=baseline
+      - odin build ../main.odin -file -out:odinmain -o:speed
+      - rm -f {{.TASKFILE_DIR}}/{{.OUTPUT_PATH}}/zigmain.o
+
+  run:
+    deps: [build]
+    dir: "{{.OUTPUT_PATH}}"
+    cmds:
+      - ./zigmain {{.CLI_ARGS}}
+      - ./odinmain {{.CLI_ARGS}}

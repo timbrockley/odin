@@ -1,0 +1,27 @@
+version: '3'
+
+vars:
+  OUTPUT_PATH: "odin-out"
+
+tasks:
+  clean:
+    cmds:
+      - rm -rf {{.OUTPUT_PATH}}
+
+  build:
+    dir: "{{.OUTPUT_PATH}}"
+    cmds:
+      - gcc -o libmath.o -c ../libmath.c
+      - ar rcs libmath.a libmath.o
+      - gcc -o cmain ../cmain.c -L. -lmath -static
+      - cp ../main.odin .
+      - odin build main.odin -file -out:odinmain -o:speed
+      - rm -f {{.TASKFILE_DIR}}/{{.OUTPUT_PATH}}/libmath.{a,o}
+      - rm -f {{.TASKFILE_DIR}}/{{.OUTPUT_PATH}}/main.odin
+
+  run:
+    deps: [build]
+    dir: "{{.OUTPUT_PATH}}"
+    cmds:
+      - ./cmain {{.CLI_ARGS}}
+      - ./odinmain {{.CLI_ARGS}}

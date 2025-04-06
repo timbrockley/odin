@@ -1,0 +1,16 @@
+#--------------------------------------------------------------------------------
+
+copy binarys into /user/local/odin
+
+and create symlink in /usr/local/bin
+
+#--------------------------------------------------------------------------------
+
+naming conventions
+------------------
+struct: PascalCase
+function: camelCase
+variable: snake_case
+contants: UPPER_SNAKE_CASE
+
+#--------------------------------------------------------------------------------
