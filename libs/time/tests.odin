@@ -2,6 +2,7 @@ package tb_time
 
 import "core:log"
 import "core:math"
+import vmem "core:mem/virtual"
 import "core:testing"
 import "core:time"
 
@@ -41,6 +42,9 @@ TIME :: 0.1702083333
 
 test_now, test_time, test_time_nano: time.Time
 
+arena: vmem.Arena
+allocator := vmem.arena_allocator(&arena)
+
 //------------------------------------------------------------
 
 @(init)
@@ -59,25 +63,6 @@ init_test :: proc() {
 	if !ok {
 		log.error("failed to convert components to test_time_nano")
 	}
-	//----------------------------------------
-}
-
-//------------------------------------------------------------
-
-@(test)
-safe_array_value_test :: proc(t: ^testing.T) {
-	//----------------------------------------
-	testing.expect_value(t, safe_array_value(DAYS), "Invalid Index")
-	testing.expect_value(t, safe_array_value(DAYS, 0), "Invalid Index")
-	testing.expect_value(t, safe_array_value(DAYS, 1), "Monday")
-	testing.expect_value(t, safe_array_value(DAYS, 2), "Tuesday")
-	testing.expect_value(t, safe_array_value(DAYS, 3), "Wednesday")
-	testing.expect_value(t, safe_array_value(DAYS, 4), "Thursday")
-	testing.expect_value(t, safe_array_value(DAYS, 5), "Friday")
-	testing.expect_value(t, safe_array_value(DAYS, 6), "Saturday")
-	testing.expect_value(t, safe_array_value(DAYS, 7), "Sunday")
-	testing.expect_value(t, safe_array_value(DAYS, 8), "")
-	testing.expect_value(t, safe_array_value(DAYS, 9999), "")
 	//----------------------------------------
 }
 
@@ -613,5 +598,61 @@ excel_datetime_unixtime_test :: proc(t: ^testing.T) {
 unixtime_excel_datetime_test :: proc(t: ^testing.T) {
 	testing.expect_value(t, int(unixtime_excel_datetime(UT) * 1e10), int(DATETIME * 1e10))
 }
+
+//------------------------------------------------------------
+
+@(test)
+format_test :: proc(t: ^testing.T) {
+	//----------------------------------------
+	tm1 := new_time(2024, 1, 1, 2, 3, 4)
+	tm2 := new_time(2024, 7, 1)
+	//----------------------------------------
+	testing.expect_value(t, format(allocator, tm1, "utms"), "1704074584000")
+	testing.expect_value(t, format(allocator, tm1, "ut"), "1704074584")
+	testing.expect_value(t, format(allocator, tm1, "ddd"), "001")
+	testing.expect_value(t, format(allocator, tm1, "hh"), "02")
+	testing.expect_value(t, format(allocator, tm1, "mm"), "03")
+	testing.expect_value(t, format(allocator, tm1, "ss"), "04")
+	testing.expect_value(t, format(allocator, tm1, "zzz"), "000")
+	testing.expect_value(t, format(allocator, tm1, "DST"), "")
+	testing.expect_value(t, format(allocator, tm2, "DST"), "DST")
+	testing.expect_value(t, format(allocator, tm2, "cywk"), "202427")
+	testing.expect_value(t, format(allocator, tm2, "wk"), "27")
+	testing.expect_value(t, format(allocator, tm2, "CY"), "2024")
+	testing.expect_value(t, format(allocator, tm2, "cy"), "2024")
+	testing.expect_value(t, format(allocator, tm2, "y"), "24")
+	testing.expect_value(t, format(allocator, tm2, "m"), "07")
+	testing.expect_value(t, format(allocator, tm2, "d"), "01")
+	testing.expect_value(t, format(allocator, tm2, "MM"), "July")
+	testing.expect_value(t, format(allocator, tm2, "M"), "Jul")
+	testing.expect_value(t, format(allocator, tm2, "DD"), "Monday")
+	testing.expect_value(t, format(allocator, tm2, "D"), "Mon")
+	testing.expect_value(t, format(allocator, tm2, "q"), "3")
+	//----------------------------------------
+	testing.expect_value(t, format(allocator, tm2, "cyddd"), "2024183")
+	//----------------------------------------
+}
+
+//------------------------------------------------------------
+
+@(test)
+safe_array_value_test :: proc(t: ^testing.T) {
+	testing.expect_value(t, safe_array_value(DAYS), "Invalid Index")
+	testing.expect_value(t, safe_array_value(DAYS, 0), "Invalid Index")
+	testing.expect_value(t, safe_array_value(DAYS, 1), "Monday")
+	testing.expect_value(t, safe_array_value(DAYS, 2), "Tuesday")
+	testing.expect_value(t, safe_array_value(DAYS, 3), "Wednesday")
+	testing.expect_value(t, safe_array_value(DAYS, 4), "Thursday")
+	testing.expect_value(t, safe_array_value(DAYS, 5), "Friday")
+	testing.expect_value(t, safe_array_value(DAYS, 6), "Saturday")
+	testing.expect_value(t, safe_array_value(DAYS, 7), "Sunday")
+	testing.expect_value(t, safe_array_value(DAYS, 8), "")
+	testing.expect_value(t, safe_array_value(DAYS, 9999), "")
+}
+
+//------------------------------------------------------------
+
+@(fini)
+deinit_test :: proc() {vmem.arena_destroy(&arena)}
 
 //------------------------------------------------------------

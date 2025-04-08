@@ -7,9 +7,12 @@ package tb_time
 
 import "core:fmt"
 import "core:math"
+import "core:mem"
+import vmem "core:mem/virtual"
 import "core:os"
 import "core:path/filepath"
 import "core:reflect"
+import "core:strings"
 import "core:time"
 import dt "core:time/datetime"
 
@@ -512,6 +515,44 @@ excel_datetime_unixtime :: proc(excelDateTime: f64) -> i64 {
 
 unixtime_excel_datetime :: proc(ut: i64) -> f64 {
 	return f64(ut) / 86400 + 25569
+}
+
+//------------------------------------------------------------
+
+format :: proc(allocator: mem.Allocator, tm: time.Time, template: string) -> string {
+
+	output := template
+
+	/*
+		replacements in a set order to avoid template clashes
+	*/
+
+	output, _ = strings.replace_all(output, "utms", fmt.tprintf("%013d", utms(tm)), allocator)
+	output, _ = strings.replace_all(output, "ut", fmt.tprintf("%010d", ut(tm)), allocator)
+	output, _ = strings.replace_all(output, "ddd", fmt.tprintf("%03d", ddd(tm)), allocator)
+	output, _ = strings.replace_all(output, "hh", fmt.tprintf("%02d", hh(tm)), allocator)
+	output, _ = strings.replace_all(output, "mm", fmt.tprintf("%02d", mm(tm)), allocator)
+	output, _ = strings.replace_all(output, "ss", fmt.tprintf("%02d", ss(tm)), allocator)
+	output, _ = strings.replace_all(output, "zzz", fmt.tprintf("%03d", zzz(tm)), allocator)
+	output, _ = strings.replace_all(output, "DST", is_dst(tm) ? "@1" : "", allocator)
+	output, _ = strings.replace_all(output, "cywk", fmt.tprintf("%06d", cywk(tm)), allocator)
+	output, _ = strings.replace_all(output, "wk", fmt.tprintf("%02d", wk(tm)), allocator)
+	output, _ = strings.replace_all(output, "CY", fmt.tprintf("%04d", iso_year(tm)), allocator)
+	output, _ = strings.replace_all(output, "cy", fmt.tprintf("%04d", cy(tm)), allocator)
+	output, _ = strings.replace_all(output, "y", fmt.tprintf("%02d", y(tm)), allocator)
+	output, _ = strings.replace_all(output, "m", fmt.tprintf("%02d", m(tm)), allocator)
+	output, _ = strings.replace_all(output, "d", fmt.tprintf("%02d", d(tm)), allocator)
+	output, _ = strings.replace_all(output, "MM", "@2", allocator)
+	output, _ = strings.replace_all(output, "M", "@3", allocator)
+	output, _ = strings.replace_all(output, "DD", dowDD(tm), allocator)
+	output, _ = strings.replace_all(output, "D", dowD(tm), allocator)
+	output, _ = strings.replace_all(output, "q", fmt.tprintf("%01d", q(tm)), allocator)
+
+	output, _ = strings.replace_all(output, "@1", "DST", allocator)
+	output, _ = strings.replace_all(output, "@2", monthMM(tm), allocator)
+	output, _ = strings.replace_all(output, "@3", monthM(tm), allocator)
+
+	return output
 }
 
 //------------------------------------------------------------
