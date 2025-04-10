@@ -6,21 +6,28 @@ import "core:fmt"
 
 main :: proc() {
 	//----------------------------------------
-	dynamic_array := make([dynamic]int, 0, 0)
-	// defer delete(dynamic_array) // optional as will be freed when out of scope
+	dynamicArray1 := [dynamic]int{}
+	// defer delete(dynamicArray1) // optional as will be freed when out of scope
 	//----------------------------------------
-	append(&dynamic_array, 1, 2, 3)
+	append(&dynamicArray1, 1, 2, 3)
 	//----------------------------------------
-	fmt.println("dynamic array:", dynamic_array)
+	fmt.println("dynamic array:", dynamicArray1)
 	//----------------------------------------
-	dynamic_map := map[string]string{}
-	// defer delete(dynamic_map) // optional as will be freed when out of scope
+	dynamicArray2 := [dynamic]string{}
+	// defer delete(dynamicArray2) // optional as will be freed when out of scope
 	//----------------------------------------
-	dynamic_map["one"] = "1"
-	dynamic_map["two"] = "2"
-	dynamic_map["three"] = "3"
+	append(&dynamicArray2, "1", "2", "3")
 	//----------------------------------------
-	fmt.println("dynamic map:", dynamic_map)
+	fmt.println("dynamic array:", dynamicArray2)
+	//----------------------------------------
+	dynamicMap := map[string]string{}
+	// defer delete(dynamicMap) // optional as will be freed when out of scope
+	//----------------------------------------
+	dynamicMap["one"] = "1"
+	dynamicMap["two"] = "2"
+	dynamicMap["three"] = "3"
+	//----------------------------------------
+	fmt.println("dynamic map:", dynamicMap)
 	//----------------------------------------
 }
 
