@@ -16,6 +16,8 @@ import "core:strings"
 import "core:time"
 import dt "core:time/datetime"
 
+// allocatedStrings := make([dynamic]string, 0, 0)
+
 //------------------------------------------------------------
 
 months: [13]string = {
@@ -519,7 +521,11 @@ unixtime_excel_datetime :: proc(ut: i64) -> f64 {
 
 //------------------------------------------------------------
 
-format :: proc(allocator: mem.Allocator, tm: time.Time, template: string) -> string {
+format :: proc(
+	tm: time.Time,
+	template: string,
+	allocator: mem.Allocator = context.allocator,
+) -> string {
 
 	output := template
 
