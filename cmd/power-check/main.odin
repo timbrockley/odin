@@ -1,5 +1,8 @@
 package main
 
+// Copyright 2025, Tim Brockley. All rights reserved.
+// This software is licensed under the MIT License.
+
 import "core:fmt"
 import os "core:os/os2"
 import "core:strings"
