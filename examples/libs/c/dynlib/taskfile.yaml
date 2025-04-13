@@ -18,7 +18,6 @@ tasks:
       - rm -f {{.TASKFILE_DIR}}/{{.OUTPUT_PATH}}/libmath.o
 
   run:
-    deps: [build]
     dir: "{{.OUTPUT_PATH}}"
     cmds:
       - ./cmain {{.CLI_ARGS}}

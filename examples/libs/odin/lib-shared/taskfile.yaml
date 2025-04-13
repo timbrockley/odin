@@ -20,7 +20,6 @@ tasks:
       - rm -f {{.TASKFILE_DIR}}/{{.OUTPUT_PATH}}/zigmain.o
 
   run:
-    deps: [build]
     dir: "{{.OUTPUT_PATH}}"
     cmds:
       - ./zigmain {{.CLI_ARGS}}
