@@ -20,23 +20,23 @@ DAYS: [8]string = {
 
 //------------------------------------------------------------
 
-safe_array_value :: proc(array: [$N]$T, index := int(0)) -> T {
+safeArrayValue :: proc(array: [$N]$T, index := int(0)) -> T {
 	return index >= 0 && index < N ? array[index] : T{}
 }
 
 @(test)
-safe_array_value_test :: proc(t: ^testing.T) {
-	testing.expect_value(t, safe_array_value(DAYS), "Invalid Index")
-	testing.expect_value(t, safe_array_value(DAYS, 0), "Invalid Index")
-	testing.expect_value(t, safe_array_value(DAYS, 1), "Monday")
-	testing.expect_value(t, safe_array_value(DAYS, 2), "Tuesday")
-	testing.expect_value(t, safe_array_value(DAYS, 3), "Wednesday")
-	testing.expect_value(t, safe_array_value(DAYS, 4), "Thursday")
-	testing.expect_value(t, safe_array_value(DAYS, 5), "Friday")
-	testing.expect_value(t, safe_array_value(DAYS, 6), "Saturday")
-	testing.expect_value(t, safe_array_value(DAYS, 7), "Sunday")
-	testing.expect_value(t, safe_array_value(DAYS, 8), "")
-	testing.expect_value(t, safe_array_value(DAYS, 9999), "")
+safeArrayValue_test :: proc(t: ^testing.T) {
+	testing.expect_value(t, safeArrayValue(DAYS), "Invalid Index")
+	testing.expect_value(t, safeArrayValue(DAYS, 0), "Invalid Index")
+	testing.expect_value(t, safeArrayValue(DAYS, 1), "Monday")
+	testing.expect_value(t, safeArrayValue(DAYS, 2), "Tuesday")
+	testing.expect_value(t, safeArrayValue(DAYS, 3), "Wednesday")
+	testing.expect_value(t, safeArrayValue(DAYS, 4), "Thursday")
+	testing.expect_value(t, safeArrayValue(DAYS, 5), "Friday")
+	testing.expect_value(t, safeArrayValue(DAYS, 6), "Saturday")
+	testing.expect_value(t, safeArrayValue(DAYS, 7), "Sunday")
+	testing.expect_value(t, safeArrayValue(DAYS, 8), "")
+	testing.expect_value(t, safeArrayValue(DAYS, 9999), "")
 }
 
 //------------------------------------------------------------

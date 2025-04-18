@@ -29,14 +29,14 @@ ArgValue :: union {
 
 main :: proc() {
 	//----------------------------------------
-	options, optionsMap, arguments, err := processArguments()
-	// defer delete(optionsMap) // optional as will be freed when out of scope
+	options, options_map, arguments, err := processArguments()
+	// defer delete(options_map) // optional as will be freed when out of scope
 	// defer delete(arguments) // optional as will be freed when out of scope
 	//----------------------------------------
 	if err != .None {
 		fmt.println("\nError:", err)
 	}
-	fmt.println("\nProcessed Options Map =", optionsMap)
+	fmt.println("\nProcessed Options Map =", options_map)
 	fmt.println("\nProcessed Options Struct = ", options)
 	fmt.println("\nProcessed Arguments = ", arguments)
 	//----------------------------------------
@@ -49,14 +49,14 @@ main :: proc() {
 processArguments :: proc(
 ) -> (
 	options: Options,
-	optionsMap: map[string]ArgValue,
+	options_map: map[string]ArgValue,
 	arguments: [dynamic]string,
 	err: Error,
 ) {
 	//----------------------------------------
 	arguments = make([dynamic]string, 0, 0)
 	//----------------------------------------
-	optionsMap = map[string]ArgValue{}
+	options_map = map[string]ArgValue{}
 	//----------------------------------------
 	for arg in os.args[1:] {
 		//--------------------
@@ -65,14 +65,14 @@ processArguments :: proc(
 			index := strings.index(arg, ":")
 			//--------------------
 			if index == -1 || arg == ":" {
-				optionsMap[arg] = true
+				options_map[arg] = true
 			} else {
 				argSplit := strings.split(arg, ":")
 				// defer delete(argSplit) // optional as will be freed when out of scope
 				//--------------------
 				key := index == 0 ? ":" : argSplit[0]
 				value := argSplit[1]
-				optionsMap[key] = value
+				options_map[key] = value
 				//--------------------
 			}
 			//--------------------
@@ -87,7 +87,7 @@ processArguments :: proc(
 	options = Options{}
 	err = .None
 	//----------------------------------------
-	for key, value in optionsMap {
+	for key, value in options_map {
 		//--------------------
 		switch _ in value {
 		case bool:
@@ -112,7 +112,7 @@ processArguments :: proc(
 		//--------------------
 	}
 	//----------------------------------------
-	return options, optionsMap, arguments, err
+	return options, options_map, arguments, err
 	//----------------------------------------
 }
 

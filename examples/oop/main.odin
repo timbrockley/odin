@@ -6,11 +6,11 @@ User :: struct {
 	name: string,
 }
 
-update_name :: proc(u: ^User, name: string) {
+updateName :: proc(u: ^User, name: string) {
 	u.name = name
 }
 
-get_name :: proc(u: ^User) -> string {
+getName :: proc(u: ^User) -> string {
 	return u.name
 }
 
@@ -20,10 +20,10 @@ main :: proc() {
 		name = "NO_NAME",
 	}
 	//----------------------------------------
-	fmt.println(get_name(&u))
+	fmt.println(getName(&u))
 	//----------------------------------------
-	update_name(&u, "NEW_NAME")
+	updateName(&u, "NEW_NAME")
 	//----------------------------------------
-	fmt.println(get_name(&u))
+	fmt.println(getName(&u))
 	//----------------------------------------
 }

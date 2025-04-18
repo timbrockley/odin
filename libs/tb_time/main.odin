@@ -2,8 +2,10 @@
 
 package tb_time
 
+//------------------------------------------------------------
 // Copyright 2025, Tim Brockley. All rights reserved.
 // This software is licensed under the MIT License.
+//------------------------------------------------------------
 
 import "core:fmt"
 import "core:math"
@@ -15,8 +17,6 @@ import "core:reflect"
 import "core:strings"
 import "core:time"
 import dt "core:time/datetime"
-
-// allocatedStrings := make([dynamic]string, 0, 0)
 
 //------------------------------------------------------------
 
@@ -65,9 +65,9 @@ DAYS: [8]string = {
 	"Sunday",
 }
 
-dayNumbers: [13]int = {0, 1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335}
+DAY_NUMBERS: [13]int = {0, 1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335}
 
-leapDayNumbers: [13]int = {0, 1, 32, 61, 92, 122, 153, 183, 214, 245, 275, 306, 336}
+LEAP_YEAR_DAY_NUMBERS: [13]int = {0, 1, 32, 61, 92, 122, 153, 183, 214, 245, 275, 306, 336}
 
 //------------------------------------------------------------
 
@@ -87,7 +87,7 @@ time_from_unix_nano :: proc(nanoseconds: i64) -> time.Time {
 
 //------------------------------------------------------------
 
-components_nano_to_time :: proc(
+componentsToTime :: proc(
 	#any_int year := i64(0),
 	#any_int month := i64(0),
 	#any_int day := i64(0),
@@ -119,7 +119,7 @@ components_nano_to_time :: proc(
 	return time.compound_to_time(datetime)
 }
 
-new_time :: proc(
+newTime :: proc(
 	#any_int year := i64(0),
 	#any_int month := i64(0),
 	#any_int day := i64(0),
@@ -131,7 +131,7 @@ new_time :: proc(
 	tm: time.Time,
 ) {
 
-	tm, _ = components_nano_to_time(
+	tm, _ = componentsToTime(
 		year,
 		month > 0 ? month : 1,
 		day > 0 ? day : 1,
@@ -144,30 +144,30 @@ new_time :: proc(
 	return tm
 }
 
-time_from_excel_datetime :: proc(excelDateTime: f64) -> time.Time {
-	return time.from_nanoseconds(excel_datetime_unixtime(excelDateTime) * 1_000_000_000)
+timeFromExcelDateTime :: proc(excel_datetime: f64) -> time.Time {
+	return time.from_nanoseconds(excelDateTime_to_unixtime(excel_datetime) * 1_000_000_000)
 }
 
 //------------------------------------------------------------
 
-is_leap_year :: proc(timeValue: union {
+isLeapYear :: proc(time_value: union {
 		time.Time,
 		int,
 	}) -> bool {
 
 	year: int
 
-	switch _ in timeValue {
+	switch _ in time_value {
 	case time.Time:
-		year = time.year(timeValue.(time.Time))
+		year = time.year(time_value.(time.Time))
 	case int:
-		year = timeValue.(int)
+		year = time_value.(int)
 	}
 
 	return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
 }
 
-is_dst :: proc(tm: time.Time) -> bool {
+isDST :: proc(tm: time.Time) -> bool {
 
 	year := time.year(tm)
 	month := int(time.month(tm))
@@ -176,10 +176,10 @@ is_dst :: proc(tm: time.Time) -> bool {
 	if (month < 3 || month > 10) {return false}
 	if (month > 3 && month < 10) {return true}
 
-	dow := dow(new_time(year, month, 31))
-	lastDay := (dow == 7) ? 31 : 31 - dow
+	dow := dow(newTime(year, month, 31))
+	last_day := (dow == 7) ? 31 : 31 - dow
 
-	return (month == 3) ? (day >= lastDay) ? true : false : (day < lastDay) ? true : false
+	return (month == 3) ? (day >= last_day) ? true : false : (day < last_day) ? true : false
 }
 
 //------------------------------------------------------------
@@ -214,50 +214,50 @@ ddd :: proc(tm: time.Time) -> int {
 
 	month := int(time.month(tm))
 
-	if is_leap_year(tm) {
-		return safe_array_value(leapDayNumbers, month) + time.day(tm) - 1
+	if isLeapYear(tm) {
+		return safeArrayValue(LEAP_YEAR_DAY_NUMBERS, month) + time.day(tm) - 1
 	} else {
-		return safe_array_value(dayNumbers, month) + time.day(tm) - 1
+		return safeArrayValue(DAY_NUMBERS, month) + time.day(tm) - 1
 	}
 }
 
-dow :: proc(timeValue: union {
+dow :: proc(time_value: union {
 		time.Time,
 		time.Weekday,
 		int,
 	}) -> (dow: int) {
 
-	switch _ in timeValue {
+	switch _ in time_value {
 	case time.Time:
-		dow = int(time.weekday(timeValue.(time.Time)))
+		dow = int(time.weekday(time_value.(time.Time)))
 	case time.Weekday:
-		dow = int(timeValue.(time.Weekday))
+		dow = int(time_value.(time.Weekday))
 	case int:
-		dow = timeValue.(int)
+		dow = time_value.(int)
 	}
 
 	return (dow <= 0 || dow > 7) ? 7 : dow
 }
 
-dowD :: proc(timeValue: union {
+dowD :: proc(time_value: union {
 		time.Time,
 		time.Weekday,
 		int,
 	}) -> string {
 
-	return safe_array_value(days, dow(timeValue))
+	return safeArrayValue(days, dow(time_value))
 }
 
-dowDD :: proc(timeValue: union {
+dowDD :: proc(time_value: union {
 		time.Time,
 		time.Weekday,
 		int,
 	}) -> string {
 
-	return safe_array_value(DAYS, dow(timeValue))
+	return safeArrayValue(DAYS, dow(time_value))
 }
 
-monthM :: proc(timeValue: union {
+monthM :: proc(time_value: union {
 		time.Time,
 		time.Month,
 		int,
@@ -265,19 +265,19 @@ monthM :: proc(timeValue: union {
 
 	month: int
 
-	switch _ in timeValue {
+	switch _ in time_value {
 	case time.Time:
-		month = int(time.month(timeValue.(time.Time)))
+		month = int(time.month(time_value.(time.Time)))
 	case time.Month:
-		month = int(timeValue.(time.Month))
+		month = int(time_value.(time.Month))
 	case int:
-		month = timeValue.(int)
+		month = time_value.(int)
 	}
 
-	return safe_array_value(months, month)
+	return safeArrayValue(months, month)
 }
 
-monthMM :: proc(timeValue: union {
+monthMM :: proc(time_value: union {
 		time.Time,
 		time.Month,
 		int,
@@ -285,95 +285,95 @@ monthMM :: proc(timeValue: union {
 
 	month: int
 
-	switch _ in timeValue {
+	switch _ in time_value {
 	case time.Time:
-		month = int(time.month(timeValue.(time.Time)))
+		month = int(time.month(time_value.(time.Time)))
 	case time.Month:
-		month = int(timeValue.(time.Month))
+		month = int(time_value.(time.Month))
 	case int:
-		month = timeValue.(int)
+		month = time_value.(int)
 	}
 
-	return safe_array_value(MONTHS, month)
+	return safeArrayValue(MONTHS, month)
 }
 
 //------------------------------------------------------------
 
-iso_year :: proc(tm: time.Time) -> int {
+isoYear :: proc(tm: time.Time) -> int {
 	return int(cywk(tm) / 1_00)
 }
 
 cywk :: proc(tm: time.Time) -> int {
 
 	year := time.year(tm)
-	weekNumber := wk(tm)
-	dayNumber := ddd(tm)
+	week_number := wk(tm)
+	day_number := ddd(tm)
 
-	if (dayNumber < 10 && weekNumber > 51) {
+	if (day_number < 10 && week_number > 51) {
 		year -= 1
-	} else if (dayNumber > 350 && weekNumber < 2) {
+	} else if (day_number > 350 && week_number < 2) {
 		year += 1
 	}
 
-	return year * 100 + weekNumber
+	return year * 100 + week_number
 }
 
 wk :: proc(tm: time.Time) -> int {
 
 	year := time.year(tm)
-	weekNumber := 0
+	week_number := 0
 
-	dayOfyear := ddd(tm)
-	jan1Weekday := dow(new_time(year))
-	weekDay := dow(tm)
-	yearNumber := year
+	day_of_year := ddd(tm)
+	jan1_weekday := dow(newTime(year))
+	week_day := dow(tm)
+	year_number := year
 
-	if (dayOfyear <= (8 - jan1Weekday) && jan1Weekday > 4) {
+	if (day_of_year <= (8 - jan1_weekday) && jan1_weekday > 4) {
 
-		yearNumber = year - 1
-		tmPrevious := new_time(yearNumber)
+		year_number = year - 1
+		tm_previous := newTime(year_number)
 
-		if (jan1Weekday == 5 || (jan1Weekday == 6 && is_leap_year(tmPrevious))) {
-			weekNumber = 53
+		if (jan1_weekday == 5 || (jan1_weekday == 6 && isLeapYear(tm_previous))) {
+			week_number = 53
 		} else {
-			weekNumber = 52
+			week_number = 52
 		}
 
 	} else {
 
-		daysInYear := is_leap_year(tm) ? 366 : 365
+		days_in_year := isLeapYear(tm) ? 366 : 365
 
-		if ((daysInYear - dayOfyear) < (4 - weekDay)) {
+		if ((days_in_year - day_of_year) < (4 - week_day)) {
 
-			yearNumber = year + 1
-			weekNumber = 1
+			year_number = year + 1
+			week_number = 1
 
 		} else {
 
-			isoAdjustedDAYS := dayOfyear + (7 - weekDay) + (jan1Weekday - 1)
-			weekNumber = int(isoAdjustedDAYS / 7)
+			iso_adjusted_days := day_of_year + (7 - week_day) + (jan1_weekday - 1)
+			week_number = int(iso_adjusted_days / 7)
 
-			if (jan1Weekday > 4) {weekNumber -= 1}
+			if (jan1_weekday > 4) {week_number -= 1}
 
 		}
 	}
 
-	return weekNumber
+	return week_number
 }
 
-q :: proc(timeValue: union {
+q :: proc(time_value: union {
 		time.Time,
 		time.Month,
 		int,
 	}) -> (month: int) {
 
-	switch _ in timeValue {
+	switch _ in time_value {
 	case time.Time:
-		month = int(time.month(timeValue.(time.Time)))
+		month = int(time.month(time_value.(time.Time)))
 	case time.Month:
-		month = int(timeValue.(time.Month))
+		month = int(time_value.(time.Month))
 	case int:
-		month = timeValue.(int)
+		month = time_value.(int)
 	}
 
 	if month >= 1 && month <= 3 {return 1}
@@ -428,13 +428,13 @@ ut :: proc(tm: time.Time) -> int {return int(time.time_to_unix(tm))}
 
 //------------------------------------------------------------
 
-hhmmss_seconds :: proc(hhmmss: int) -> int {
+hhmmss_to_seconds :: proc(hhmmss: int) -> int {
 	hour := int(hhmmss / 1_00_00)
 	minute := int((hhmmss - hour * 1_00_00) / 1_00)
 	return hour * 3600 + minute * 60 + hhmmss - hour * 1_00_00 - minute * 1_00
 }
 
-seconds_hhmmss :: proc(seconds: int) -> int {
+seconds_to_hhmmss :: proc(seconds: int) -> int {
 	hour := int(seconds / 3600)
 	minute := int((seconds % 3600) / 60)
 	return hour * 1_00_00 + minute * 1_00 + int(seconds % 3600) % 60
@@ -442,41 +442,41 @@ seconds_hhmmss :: proc(seconds: int) -> int {
 
 //------------------------------------------------------------
 
-hhmm_mins :: proc(hhmm: int) -> int {
+hhmm_to_mins :: proc(hhmm: int) -> int {
 	hour := int(hhmm / 1_00)
 	minute := hhmm - hour * 1_00
 	return hour * 60 + minute
 }
 
-mins_hhmm :: proc(mins: int) -> int {
+mins_to_hhmm :: proc(mins: int) -> int {
 	hour := int(mins / 60)
 	return hour * 1_00 + int(mins % 60)
 }
 
 //------------------------------------------------------------
 
-excel_datetime :: proc(tm: time.Time) -> f64 {
+excelDateTime :: proc(tm: time.Time) -> f64 {
 	return f64(time.time_to_unix(tm)) / 86400 + 25569
 }
 
-excel_date :: proc(tm: time.Time) -> f64 {
-	dateOnly, _ := components_nano_to_time(time.year(tm), int(time.month(tm)), time.day(tm))
-	return f64(time.time_to_unix(dateOnly)) / 86400 + 25569
+excelDate :: proc(tm: time.Time) -> f64 {
+	date_only, _ := componentsToTime(time.year(tm), int(time.month(tm)), time.day(tm))
+	return f64(time.time_to_unix(date_only)) / 86400 + 25569
 }
 
-excel_date_cymd :: proc(excelDateTime: f64) -> int {
-	excelDate := math.trunc_f64(excelDateTime)
-	tm := time.from_nanoseconds(excel_datetime_unixtime(excelDate) * 1_000_000_000)
+excelDate_to_cymd :: proc(excel_datetime: f64) -> int {
+	excel_date := math.trunc_f64(excel_datetime)
+	tm := time.from_nanoseconds(excelDateTime_to_unixtime(excel_date) * 1_000_000_000)
 	return time.year(tm) * 1_00_00 + int(time.month(tm)) * 1_00 + time.day(tm)
 }
 
-cymd_excel_date :: proc(cymd: int) -> f64 {
+cymd_to_excelDate :: proc(cymd: int) -> f64 {
 
 	year := int(cymd / 1_00_00)
 	month := int((cymd - year * 1_00_00) / 1_00)
 	day := cymd - year * 1_00_00 - month * 1_00
 
-	tm, ok := components_nano_to_time(year, month, day)
+	tm, ok := componentsToTime(year, month, day)
 	if ok == false {return 0}
 
 	return f64(time.time_to_unix(tm)) / 86400 + 25569
@@ -484,14 +484,14 @@ cymd_excel_date :: proc(cymd: int) -> f64 {
 
 //------------------------------------------------------------
 
-excel_time :: proc(tm: time.Time) -> f64 {
+excelTime :: proc(tm: time.Time) -> f64 {
 	hour, minute, second := time.clock_from_time(tm)
 	return f64(hour * 3600 + minute * 60 + second) / 86400
 }
 
-excel_time_hhmmss :: proc(excelDateTime: f64) -> int {
+excelTime_to_hhmmss :: proc(excel_datetime: f64) -> int {
 
-	excelTime := excelDateTime - math.trunc_f64(excelDateTime)
+	excelTime := excel_datetime - math.trunc_f64(excel_datetime)
 
 	seconds := int(math.round(excelTime * 86400))
 	hour := seconds / 3600
@@ -500,7 +500,7 @@ excel_time_hhmmss :: proc(excelDateTime: f64) -> int {
 	return hour * 10_000 + minute * 1_00 + int(seconds % 3600) % 60
 }
 
-hhmmss_excel_time :: proc(hhmmss: int) -> f64 {
+hhmmss_to_excelTime :: proc(hhmmss: int) -> f64 {
 
 	hour := int(hhmmss / 1_00_00)
 	minute := int((hhmmss - hour * 1_00_00) / 1_00)
@@ -511,11 +511,11 @@ hhmmss_excel_time :: proc(hhmmss: int) -> f64 {
 
 //------------------------------------------------------------
 
-excel_datetime_unixtime :: proc(excelDateTime: f64) -> i64 {
-	return i64(math.round((excelDateTime - 25569) * 86400))
+excelDateTime_to_unixtime :: proc(excel_datetime: f64) -> i64 {
+	return i64(math.round((excel_datetime - 25569) * 86400))
 }
 
-unixtime_excel_datetime :: proc(ut: i64) -> f64 {
+unixtime_to_excelDateTime :: proc(ut: i64) -> f64 {
 	return f64(ut) / 86400 + 25569
 }
 
@@ -540,10 +540,10 @@ format :: proc(
 	output, _ = strings.replace_all(output, "mm", fmt.tprintf("%02d", mm(tm)), allocator)
 	output, _ = strings.replace_all(output, "ss", fmt.tprintf("%02d", ss(tm)), allocator)
 	output, _ = strings.replace_all(output, "zzz", fmt.tprintf("%03d", zzz(tm)), allocator)
-	output, _ = strings.replace_all(output, "DST", is_dst(tm) ? "@1" : "", allocator)
+	output, _ = strings.replace_all(output, "DST", isDST(tm) ? "@1" : "", allocator)
 	output, _ = strings.replace_all(output, "cywk", fmt.tprintf("%06d", cywk(tm)), allocator)
 	output, _ = strings.replace_all(output, "wk", fmt.tprintf("%02d", wk(tm)), allocator)
-	output, _ = strings.replace_all(output, "CY", fmt.tprintf("%04d", iso_year(tm)), allocator)
+	output, _ = strings.replace_all(output, "CY", fmt.tprintf("%04d", isoYear(tm)), allocator)
 	output, _ = strings.replace_all(output, "cy", fmt.tprintf("%04d", cy(tm)), allocator)
 	output, _ = strings.replace_all(output, "y", fmt.tprintf("%02d", y(tm)), allocator)
 	output, _ = strings.replace_all(output, "m", fmt.tprintf("%02d", m(tm)), allocator)
@@ -563,7 +563,7 @@ format :: proc(
 
 //------------------------------------------------------------
 
-safe_array_value :: proc(array: [$N]$T, index := int(0)) -> T {
+safeArrayValue :: proc(array: [$N]$T, index := int(0)) -> T {
 	return index >= 0 && index < N ? array[index] : T{}
 }
 
