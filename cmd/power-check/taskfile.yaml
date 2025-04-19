@@ -1,0 +1,42 @@
+version: "3"
+
+vars:
+  OUTPUT_PATH: "odin-out"
+  OUTPUT:
+    sh: |
+      if [[ "{{OS}}" == "windows" ]]; then
+        echo ${PWD##*\\}
+      else
+        basename "${PWD}"
+      fi
+
+tasks:
+  clean:
+    cmds:
+      - rm -rf {{.OUTPUT_PATH}}
+
+  build:
+    dir: "{{.OUTPUT_PATH}}"
+    cmds:
+      - odin build ../main.odin -file -out:{{.OUTPUT}} -o:speed
+
+  build-macos:
+    dir: "{{.OUTPUT_PATH}}"
+    cmds:
+      - odin build ../main.odin -file -out:{{.OUTPUT}}-mac -o:speed -target:darwin_amd64
+
+  build-windows:
+    dir: "{{.OUTPUT_PATH}}"
+    cmds:
+      - odin build ../main.odin -file -out:{{.OUTPUT}}-windows.exe -o:speed -target:windows_amd64
+
+  run:
+    dir: "{{.OUTPUT_PATH}}"
+    cmds:
+      - silent: true
+        cmd: |
+          if [ -x "{{.OUTPUT}}" ]; then
+            ./{{.OUTPUT}} {{.CLI_ARGS}}
+          else
+            odin run ../main.odin -file -out:{{.OUTPUT}} -- {{.CLI_ARGS}}
+          fi
