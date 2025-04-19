@@ -2,6 +2,7 @@ package tb_time
 
 import "core:log"
 import "core:math"
+import "core:mem"
 import vmem "core:mem/virtual"
 import "core:testing"
 import "core:time"
@@ -42,13 +43,17 @@ TIME :: 0.1702083333
 
 test_now, test_time, test_time_nano: time.Time
 
-arena: vmem.Arena
-arenaAllocator := vmem.arena_allocator(&arena)
+// arena: vmem.Arena
+// allocator := vmem.arena_allocator(&arena)
+
+allocator: mem.Allocator
 
 //------------------------------------------------------------
 
 @(init)
 init_test :: proc() {
+	//----------------------------------------
+	allocator = context.allocator
 	//----------------------------------------
 	test_now = now()
 	//----------------------------------------
@@ -68,8 +73,8 @@ init_test :: proc() {
 
 //------------------------------------------------------------
 
-@(fini)
-deinit_test :: proc() {vmem.arena_destroy(&arena)}
+// @(fini)
+// deinit_test :: proc() {vmem.arena_destroy(&arena)}
 
 //------------------------------------------------------------
 
@@ -621,29 +626,29 @@ format_test :: proc(t: ^testing.T) {
 	delete(result1)
 	delete(result2)
 	//----------------------------------------
-	testing.expect_value(t, format(tm1, "utms", arenaAllocator), "1704074584000")
-	testing.expect_value(t, format(tm1, "ut", arenaAllocator), "1704074584")
-	testing.expect_value(t, format(tm1, "ddd", arenaAllocator), "001")
-	testing.expect_value(t, format(tm1, "hh", arenaAllocator), "02")
-	testing.expect_value(t, format(tm1, "mm", arenaAllocator), "03")
-	testing.expect_value(t, format(tm1, "ss", arenaAllocator), "04")
-	testing.expect_value(t, format(tm1, "zzz", arenaAllocator), "000")
-	testing.expect_value(t, format(tm1, "DST", arenaAllocator), "")
-	testing.expect_value(t, format(tm2, "DST", arenaAllocator), "DST")
-	testing.expect_value(t, format(tm2, "cywk", arenaAllocator), "202427")
-	testing.expect_value(t, format(tm2, "wk", arenaAllocator), "27")
-	testing.expect_value(t, format(tm2, "CY", arenaAllocator), "2024")
-	testing.expect_value(t, format(tm2, "cy", arenaAllocator), "2024")
-	testing.expect_value(t, format(tm2, "y", arenaAllocator), "24")
-	testing.expect_value(t, format(tm2, "m", arenaAllocator), "07")
-	testing.expect_value(t, format(tm2, "d", arenaAllocator), "01")
-	testing.expect_value(t, format(tm2, "MM", arenaAllocator), "July")
-	testing.expect_value(t, format(tm2, "M", arenaAllocator), "Jul")
-	testing.expect_value(t, format(tm2, "DD", arenaAllocator), "Monday")
-	testing.expect_value(t, format(tm2, "D", arenaAllocator), "Mon")
-	testing.expect_value(t, format(tm2, "q", arenaAllocator), "3")
+	testing.expect_value(t, format(tm1, "utms", allocator), "1704074584000")
+	testing.expect_value(t, format(tm1, "ut", allocator), "1704074584")
+	testing.expect_value(t, format(tm1, "ddd", allocator), "001")
+	testing.expect_value(t, format(tm1, "hh", allocator), "02")
+	testing.expect_value(t, format(tm1, "mm", allocator), "03")
+	testing.expect_value(t, format(tm1, "ss", allocator), "04")
+	testing.expect_value(t, format(tm1, "zzz", allocator), "000")
+	testing.expect_value(t, format(tm1, "DST", allocator), "")
+	testing.expect_value(t, format(tm2, "DST", allocator), "DST")
+	testing.expect_value(t, format(tm2, "cywk", allocator), "202427")
+	testing.expect_value(t, format(tm2, "wk", allocator), "27")
+	testing.expect_value(t, format(tm2, "CY", allocator), "2024")
+	testing.expect_value(t, format(tm2, "cy", allocator), "2024")
+	testing.expect_value(t, format(tm2, "y", allocator), "24")
+	testing.expect_value(t, format(tm2, "m", allocator), "07")
+	testing.expect_value(t, format(tm2, "d", allocator), "01")
+	testing.expect_value(t, format(tm2, "MM", allocator), "July")
+	testing.expect_value(t, format(tm2, "M", allocator), "Jul")
+	testing.expect_value(t, format(tm2, "DD", allocator), "Monday")
+	testing.expect_value(t, format(tm2, "D", allocator), "Mon")
+	testing.expect_value(t, format(tm2, "q", allocator), "3")
 	//----------------------------------------
-	testing.expect_value(t, format(tm2, "cyddd", arenaAllocator), "2024183")
+	testing.expect_value(t, format(tm2, "cyddd", allocator), "2024183")
 	//----------------------------------------
 }
 
