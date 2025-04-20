@@ -21,7 +21,7 @@ tasks:
       - silent: true
         cmd: |
           if [ -x "{{.OUTPUT}}" ]; then
-            ./{{.OUTPUT}} {.CLI_ARGS}}
+            ./{{.OUTPUT}} {{.CLI_ARGS}}
           else
             odin run ../main.odin -file -out:{{.OUTPUT}} -- {{.CLI_ARGS}}
           fi
