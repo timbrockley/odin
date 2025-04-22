@@ -483,7 +483,7 @@ cywk_test :: proc(t: ^testing.T) {
 @(test)
 q_test :: proc(t: ^testing.T) {
 	testing.expect_value(t, q(newTime(2001, 1, 1)), 1)
-	testing.expect_value(t, q(newTime(2001, 1, 1)), 1)
+	testing.expect_value(t, q(time.month(newTime(2001, 1, 1))), 1)
 	testing.expect_value(t, q(1), 1)
 	testing.expect_value(t, q(2), 1)
 	testing.expect_value(t, q(3), 1)
