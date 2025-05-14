@@ -8,6 +8,7 @@ main :: proc() {
 	lines := []string{"line 1", "line 2", "line 3"}
 	//----------------------------------------
 	buffer := strings.builder_make()
+	// defer strings.builder_destroy(&buffer)
 	//----------------------------------------
 	for line, _ in lines {
 		//----------------------------------------
