@@ -1,21 +1,24 @@
 package tb_time
 
+import "core:fmt"
 import "core:log"
 import "core:math"
 import "core:mem"
 import vmem "core:mem/virtual"
+import "core:strings"
 import "core:testing"
 import "core:time"
 
 //------------------------------------------------------------
 
 CY :: 2001
+C :: 20
+Y :: 1
 M :: 2
 D :: 3
 
-Y :: CY % 100
-YMD :: Y * 1_00_00 + M * 1_00 + D
 CYMD :: CY * 1_00_00 + M * 1_00 + D
+YMD :: Y * 1_00_00 + M * 1_00 + D
 
 DDD :: 34
 
@@ -43,17 +46,13 @@ TIME :: 0.1702083333
 
 test_now, test_time, test_time_nano: time.Time
 
-// arena: vmem.Arena
-// allocator := vmem.arena_allocator(&arena)
-
-allocator: mem.Allocator
+arena: vmem.Arena
+allocator := vmem.arena_allocator(&arena)
 
 //------------------------------------------------------------
 
 @(init)
 init_test :: proc() {
-	//----------------------------------------
-	allocator = context.allocator
 	//----------------------------------------
 	test_now = now()
 	//----------------------------------------
@@ -73,8 +72,8 @@ init_test :: proc() {
 
 //------------------------------------------------------------
 
-// @(fini)
-// deinit_test :: proc() {vmem.arena_destroy(&arena)}
+@(fini)
+deinit_test :: proc() {vmem.arena_destroy(&arena)}
 
 //------------------------------------------------------------
 
@@ -246,10 +245,24 @@ newTime_test3 :: proc(t: ^testing.T) {
 	//----------------------------------------
 }
 
+//------------------------------------------------------------
+
 @(test)
-timeFromExcelDateTime_test :: proc(t: ^testing.T) {
+excelDateTime_to_unixtime_test :: proc(t: ^testing.T) {
+	testing.expect_value(t, excelDateTime_to_unixtime(DATETIME), UT)
+}
+
+@(test)
+unixtime_to_excelDateTime_test :: proc(t: ^testing.T) {
+	testing.expect_value(t, int(unixtime_to_excelDateTime(UT) * 1e10), int(DATETIME * 1e10))
+}
+
+//------------------------------------------------------------
+
+@(test)
+excelDateTime_to_time_test :: proc(t: ^testing.T) {
 	//----------------------------------------
-	tm := timeFromExcelDateTime(DATETIME)
+	tm := excelDateTime_to_time(DATETIME)
 	//----------------------------------------
 	hour, minute, second, _ := time.precise_clock_from_time(tm)
 	//----------------------------------------
@@ -262,6 +275,62 @@ timeFromExcelDateTime_test :: proc(t: ^testing.T) {
 	testing.expect_value(t, minute, MM)
 	testing.expect_value(t, second, SS)
 	//----------------------------------------
+}
+
+@(test)
+time_to_excelDateTime_test :: proc(t: ^testing.T) {
+	testing.expect_value(t, int(time_to_excelDateTime(test_time) * 1e10), int(DATETIME * 1e10))
+}
+
+//------------------------------------------------------------
+
+@(test)
+excelDate_to_time_test :: proc(t: ^testing.T) {
+	//----------------------------------------
+	tm := excelDate_to_time(DATE)
+	//----------------------------------------
+	testing.expect_value(t, typeid_of(type_of(tm)), typeid_of(time.Time))
+	//----------------------------------------
+	testing.expect_value(t, time.year(tm), CY)
+	testing.expect_value(t, int(time.month(tm)), M)
+	testing.expect_value(t, time.day(tm), D)
+	//----------------------------------------
+}
+
+@(test)
+time_to_excelDate_test :: proc(t: ^testing.T) {
+	testing.expect_value(t, time_to_excelDate(test_time), DATE)
+}
+
+//------------------------------------------------------------
+
+@(test)
+excelDate_to_cymd_test :: proc(t: ^testing.T) {
+	testing.expect_value(t, excelDate_to_cymd(DATE), CYMD)
+}
+
+@(test)
+cymd_to_excelDate_test :: proc(t: ^testing.T) {
+	testing.expect_value(t, cymd_to_excelDate(CYMD), DATE)
+}
+
+//------------------------------------------------------------
+
+@(test)
+time_to_excelTime_test :: proc(t: ^testing.T) {
+	testing.expect_value(t, f32(time_to_excelTime(test_time)), f32(TIME))
+}
+
+//------------------------------------------------------------
+
+@(test)
+excelTime_to_hhmmss_test :: proc(t: ^testing.T) {
+	testing.expect_value(t, excelTime_to_hhmmss(TIME), HHMMSS)
+}
+
+@(test)
+hhmmss_to_excelTime_test :: proc(t: ^testing.T) {
+	testing.expect_value(t, f32(hhmmss_to_excelTime(HHMMSS)), f32(TIME))
 }
 
 //------------------------------------------------------------
@@ -304,6 +373,9 @@ ymd_test :: proc(t: ^testing.T) {testing.expect_value(t, ymd(test_time), YMD)}
 
 @(test)
 cy_test :: proc(t: ^testing.T) {testing.expect_value(t, cy(test_time), CY)}
+
+@(test)
+c_test :: proc(t: ^testing.T) {testing.expect_value(t, c(test_time), C)}
 
 @(test)
 y_test :: proc(t: ^testing.T) {testing.expect_value(t, y(test_time), Y)}
@@ -376,7 +448,7 @@ dowDD_test :: proc(t: ^testing.T) {
 
 @(test)
 monthM_test :: proc(t: ^testing.T) {
-	testing.expect_value(t, monthM(newTime(2024, 1)), "Jan")
+	testing.expect_value(t, monthM(newTime(2024, 1, 1)), "Jan")
 	testing.expect_value(t, monthM(time.Month.January), "Jan")
 	testing.expect_value(t, monthM(1), "Jan")
 	testing.expect_value(t, monthM(2), "Feb")
@@ -395,7 +467,7 @@ monthM_test :: proc(t: ^testing.T) {
 
 @(test)
 monthMM_test :: proc(t: ^testing.T) {
-	testing.expect_value(t, monthMM(newTime(2024, 1)), "January")
+	testing.expect_value(t, monthMM(newTime(2024, 1, 1)), "January")
 	testing.expect_value(t, monthMM(time.Month.January), "January")
 	testing.expect_value(t, monthMM(1), "January")
 	testing.expect_value(t, monthMM(2), "February")
@@ -561,112 +633,39 @@ ut_test :: proc(t: ^testing.T) {testing.expect_value(t, ut(test_time), UT)}
 //------------------------------------------------------------
 
 @(test)
-excelDateTime_test :: proc(t: ^testing.T) {
-	testing.expect_value(t, int(excelDateTime(test_time) * 1e10), int(DATETIME * 1e10))
-}
-
-@(test)
-excelDate_test :: proc(t: ^testing.T) {
-	testing.expect_value(t, excelDate(test_time), DATE)
-}
-
-@(test)
-excelDate_to_cymd_test :: proc(t: ^testing.T) {
-	testing.expect_value(t, excelDate_to_cymd(DATE), CYMD)
-}
-
-@(test)
-cymd_to_excelDate_test :: proc(t: ^testing.T) {
-	testing.expect_value(t, cymd_to_excelDate(CYMD), DATE)
-}
-
-//------------------------------------------------------------
-
-@(test)
-excelTime_test :: proc(t: ^testing.T) {
-	testing.expect_value(t, f32(excelTime(test_time)), f32(TIME))
-}
-
-@(test)
-excelTime_to_hhmmss_test :: proc(t: ^testing.T) {
-	testing.expect_value(t, excelTime_to_hhmmss(TIME), HHMMSS)
-}
-
-@(test)
-hhmmss_to_excelTime_test :: proc(t: ^testing.T) {
-	testing.expect_value(t, f32(hhmmss_to_excelTime(HHMMSS)), f32(TIME))
-}
-
-//------------------------------------------------------------
-
-@(test)
-excelDateTime_to_unixtime_test :: proc(t: ^testing.T) {
-	testing.expect_value(t, excelDateTime_to_unixtime(DATETIME), UT)
-}
-
-@(test)
-unixtime_to_excelDateTime_test :: proc(t: ^testing.T) {
-	testing.expect_value(t, int(unixtime_to_excelDateTime(UT) * 1e10), int(DATETIME * 1e10))
-}
-
-//------------------------------------------------------------
-
-@(test)
 format_test :: proc(t: ^testing.T) {
 	//----------------------------------------
-	tm1 := newTime(2024, 1, 1, 2, 3, 4)
+	tm1 := newTime(2024, 1, 1, 2, 3, 4, 5 * time.Millisecond)
 	tm2 := newTime(2024, 7, 1)
 	//----------------------------------------
-	result1 := format(tm1, "utms")
-	testing.expect_value(t, result1, "1704074584000")
-
-	result2 := format(tm1, "ut", context.allocator)
-	testing.expect_value(t, result2, "1704074584")
-
-	delete(result1)
-	delete(result2)
+	// tokens should be replaced but other chars to be copied from template
+	testing.expect_value(t, format("value = utms", tm1, allocator), "value = 1704074584005")
 	//----------------------------------------
-	testing.expect_value(t, format(tm1, "utms", allocator), "1704074584000")
-	testing.expect_value(t, format(tm1, "ut", allocator), "1704074584")
-	testing.expect_value(t, format(tm1, "ddd", allocator), "001")
-	testing.expect_value(t, format(tm1, "hh", allocator), "02")
-	testing.expect_value(t, format(tm1, "mm", allocator), "03")
-	testing.expect_value(t, format(tm1, "ss", allocator), "04")
-	testing.expect_value(t, format(tm1, "zzz", allocator), "000")
-	testing.expect_value(t, format(tm1, "DST", allocator), "")
-	testing.expect_value(t, format(tm2, "DST", allocator), "DST")
-	testing.expect_value(t, format(tm2, "cywk", allocator), "202427")
-	testing.expect_value(t, format(tm2, "wk", allocator), "27")
-	testing.expect_value(t, format(tm2, "CY", allocator), "2024")
-	testing.expect_value(t, format(tm2, "cy", allocator), "2024")
-	testing.expect_value(t, format(tm2, "y", allocator), "24")
-	testing.expect_value(t, format(tm2, "m", allocator), "07")
-	testing.expect_value(t, format(tm2, "d", allocator), "01")
-	testing.expect_value(t, format(tm2, "MM", allocator), "July")
-	testing.expect_value(t, format(tm2, "M", allocator), "Jul")
-	testing.expect_value(t, format(tm2, "DD", allocator), "Monday")
-	testing.expect_value(t, format(tm2, "D", allocator), "Mon")
-	testing.expect_value(t, format(tm2, "q", allocator), "3")
-	//----------------------------------------
-	testing.expect_value(t, format(tm2, "cyddd", allocator), "2024183")
-	//----------------------------------------
-}
+	testing.expect_value(t, format("utms", tm1, allocator), "1704074584005")
+	testing.expect_value(t, format("ut", tm1, allocator), "1704074584")
+	testing.expect_value(t, format("ddd", tm1, allocator), "001")
+	testing.expect_value(t, format("hh", tm1, allocator), "02")
+	testing.expect_value(t, format("mm", tm1, allocator), "03")
+	testing.expect_value(t, format("ss", tm1, allocator), "04")
+	testing.expect_value(t, format("zzz", tm1, allocator), "005")
+	testing.expect_value(t, format("DST", tm1, allocator), "")
 
-//------------------------------------------------------------
+	testing.expect_value(t, format("DST", tm2, allocator), "DST")
 
-@(test)
-safeArrayValue_test :: proc(t: ^testing.T) {
-	testing.expect_value(t, safeArrayValue(DAYS), "Invalid Index")
-	testing.expect_value(t, safeArrayValue(DAYS, 0), "Invalid Index")
-	testing.expect_value(t, safeArrayValue(DAYS, 1), "Monday")
-	testing.expect_value(t, safeArrayValue(DAYS, 2), "Tuesday")
-	testing.expect_value(t, safeArrayValue(DAYS, 3), "Wednesday")
-	testing.expect_value(t, safeArrayValue(DAYS, 4), "Thursday")
-	testing.expect_value(t, safeArrayValue(DAYS, 5), "Friday")
-	testing.expect_value(t, safeArrayValue(DAYS, 6), "Saturday")
-	testing.expect_value(t, safeArrayValue(DAYS, 7), "Sunday")
-	testing.expect_value(t, safeArrayValue(DAYS, 8), "")
-	testing.expect_value(t, safeArrayValue(DAYS, 9999), "")
+	testing.expect_value(t, format("cywk", tm2, allocator), "202427")
+	testing.expect_value(t, format("wk", tm2, allocator), "27")
+	testing.expect_value(t, format("CY", tm2, allocator), "2024")
+	testing.expect_value(t, format("cy", tm2, allocator), "2024")
+	testing.expect_value(t, format("c", tm2, allocator), "20")
+	testing.expect_value(t, format("y", tm2, allocator), "24")
+	testing.expect_value(t, format("m", tm2, allocator), "07")
+	testing.expect_value(t, format("d", tm2, allocator), "01")
+	testing.expect_value(t, format("q", tm2, allocator), "3")
+	testing.expect_value(t, format("MM", tm2, allocator), "July")
+	testing.expect_value(t, format("M", tm2, allocator), "Jul")
+	testing.expect_value(t, format("DD", tm2, allocator), "Monday")
+	testing.expect_value(t, format("D", tm2, allocator), "Mon")
+	//----------------------------------------
 }
 
 //------------------------------------------------------------
