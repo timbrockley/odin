@@ -1,8 +1,6 @@
 #--------------------------------------------------------------------------------
 
-copy binarys into /user/local/odin
-
-and create symlink in /usr/local/bin
+copy binarys into /user/local/odin and create symlink in /usr/local/bin
 
 #--------------------------------------------------------------------------------
 
