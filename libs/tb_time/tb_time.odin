@@ -1,18 +1,15 @@
 package tb_time
 
 //------------------------------------------------------------
-// Copyright 2025, Tim Brockley. All rights reserved.
+// Copyright 2025 Tim Brockley. All rights reserved.
 // This software is licensed under the MIT License.
 //------------------------------------------------------------
 
-import "core:bytes"
 import "core:fmt"
 import "core:math"
 import "core:mem"
-import vmem "core:mem/virtual"
 import "core:os"
 import "core:path/filepath"
-import "core:reflect"
 import "core:strings"
 import "core:time"
 import dt "core:time/datetime"
@@ -801,6 +798,8 @@ format :: proc(
 	return strings.clone(strings.to_string(buffer), allocator)
 	//---------------------------------------
 }
+
+//------------------------------------------------------------
 
 main :: proc() {
 	//---------------------------------------

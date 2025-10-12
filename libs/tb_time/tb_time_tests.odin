@@ -1,11 +1,7 @@
 package tb_time
 
-import "core:fmt"
 import "core:log"
-import "core:math"
-import "core:mem"
 import vmem "core:mem/virtual"
-import "core:strings"
 import "core:testing"
 import "core:time"
 
