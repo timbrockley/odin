@@ -1,3 +1,5 @@
+#+feature global-context
+
 package tb_time
 
 import "core:log"

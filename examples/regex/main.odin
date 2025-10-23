@@ -2,6 +2,7 @@ package main
 
 import "core:fmt"
 import "core:text/regex"
+import "core:text/regex/common"
 
 main :: proc() {
 	// Define the pattern and the replacement string
@@ -9,7 +10,7 @@ main :: proc() {
 	replacement: string = "Odin"
 	input: string = "Hello, World! and the second world and the third world"
 
-	flags := regex.Flags{regex.Flag.Global, regex.Flag.Case_Insensitive}
+	flags := regex.Flags{regex.Flag.Case_Insensitive}
 
 	// Compile the regular expression
 	re, err := regex.create(pattern, flags)
