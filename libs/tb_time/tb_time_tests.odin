@@ -3,7 +3,7 @@
 package tb_time
 
 import "core:log"
-import vmem "core:mem/virtual"
+import "core:mem/virtual"
 import "core:testing"
 import "core:time"
 
@@ -44,8 +44,8 @@ TIME :: 0.1702083333
 
 test_now, test_time, test_time_nano: time.Time
 
-arena: vmem.Arena
-allocator := vmem.arena_allocator(&arena)
+arena: virtual.Arena
+allocator := virtual.arena_allocator(&arena)
 
 //------------------------------------------------------------
 
@@ -71,7 +71,7 @@ init_test :: proc() {
 //------------------------------------------------------------
 
 @(fini)
-deinit_test :: proc() {vmem.arena_destroy(&arena)}
+deinit_test :: proc() {virtual.arena_destroy(&arena)}
 
 //------------------------------------------------------------
 

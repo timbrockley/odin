@@ -2,14 +2,12 @@
 
 package main
 
-import "core:fmt"
 import "core:mem"
-import vmem "core:mem/virtual"
 import "core:strings"
 import "core:testing"
 
-// arena: vmem.Arena
-// allocator := vmem.arena_allocator(&arena)
+// arena: virtual.Arena
+// allocator := virtual.arena_allocator(&arena)
 
 allocator: mem.Allocator
 
@@ -25,7 +23,7 @@ init_test :: proc() {
 }
 
 // @(fini)
-// deinit_test :: proc() {vmem.arena_destroy(&arena)}
+// deinit_test :: proc() {virtual.arena_destroy(&arena)}
 
 //------------------------------------------------------------
 // linux functions

@@ -55,7 +55,7 @@ main :: proc() {
 		os.exit(1)
 	}
 	//----------------------------------------
-	if err != nil {fmt.eprintln(err);os.exit(1)}
+	if err != nil {fmt.eprintln(err); os.exit(1)}
 	//----------------------------------------
 	if (len(os.args) > 1) {
 		switch os.args[1] {
@@ -125,7 +125,13 @@ findPSFilePath :: proc(allocator: mem.Allocator) -> (string, Error) {
 		//----------------------------------------
 		for dir_entry in dir_entries {
 			if strings.has_prefix(dir_entry.name, "AC") {
-				return fmt.tprintf("%s/%s/online", PS_SEARCH_PATH, dir_entry.name), nil
+				return fmt.aprintf(
+						"%s/%s/online",
+						PS_SEARCH_PATH,
+						dir_entry.name,
+						allocator = allocator,
+					),
+					nil
 			}
 		}
 		//----------------------------------------
