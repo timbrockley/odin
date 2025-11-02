@@ -7,7 +7,7 @@ package main
 import "core:fmt"
 import "core:math/rand"
 import "core:mem"
-import vmem "core:mem/virtual"
+import "core:mem/virtual"
 
 main :: proc() {
 	//----------------------------------------
@@ -33,12 +33,12 @@ main :: proc() {
 	}
 	//----------------------------------------
 	{
-		arena: vmem.Arena
-		arena_err := vmem.arena_init_static(&arena, 4000) // 4000 bytes
+		arena: virtual.Arena
+		arena_err := virtual.arena_init_static(&arena, 4096) // 4096 bytes
 
 		assert(arena_err == nil)
 
-		arena_alloc := vmem.arena_allocator(&arena)
+		arena_alloc := virtual.arena_allocator(&arena)
 
 		dyn_arr := make([dynamic]int, arena_alloc)
 		append(&dyn_arr, 7)
@@ -53,12 +53,12 @@ main :: proc() {
 			&dyn_arr[0],
 		)
 
-		vmem.arena_destroy(&arena)
+		virtual.arena_destroy(&arena)
 	}
 	//----------------------------------------
 	{
-		arena: vmem.Arena
-		arena_alloc := vmem.arena_allocator(&arena)
+		arena: virtual.Arena
+		arena_alloc := virtual.arena_allocator(&arena)
 
 		dyn_arr := make([dynamic]int, arena_alloc)
 
@@ -74,16 +74,16 @@ main :: proc() {
 			&dyn_arr[0],
 		)
 
-		vmem.arena_destroy(&arena)
+		virtual.arena_destroy(&arena)
 	}
 	//----------------------------------------
 	{
-		arena: vmem.Arena
-		arena_alloc := vmem.arena_allocator(&arena)
+		arena: virtual.Arena
+		arena_alloc := virtual.arena_allocator(&arena)
 
 		useAllocator(arena_alloc)
 
-		vmem.arena_destroy(&arena)
+		virtual.arena_destroy(&arena)
 	}
 	//----------------------------------------
 }
