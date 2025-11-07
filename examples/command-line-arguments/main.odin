@@ -1,6 +1,7 @@
 package main
 
 import "core:fmt"
+import "core:mem"
 import "core:os"
 import "core:path/filepath"
 import "core:reflect"
@@ -15,10 +16,15 @@ Options :: struct {
 	output:  string `-o, --output, Output file`,
 }
 
-Error :: enum {
-	None,
+Error :: union {
+	ArgumentsError,
+	mem.Allocator_Error,
+}
+
+ArgumentsError :: enum {
 	InvalidArgument,
 }
+
 
 ArgValue :: union {
 	bool,
@@ -33,7 +39,7 @@ main :: proc() {
 	// defer delete(options_map) // optional as will be freed when out of scope
 	// defer delete(arguments) // optional as will be freed when out of scope
 	//----------------------------------------
-	if err != .None {
+	if err != nil {
 		fmt.println("\nError:", err)
 	}
 	fmt.println("\nProcessed Options Map =", options_map)
@@ -54,7 +60,7 @@ processArguments :: proc(
 	err: Error,
 ) {
 	//----------------------------------------
-	arguments = make([dynamic]string, 0, 0)
+	arguments = make([dynamic]string, 0, 0) or_return
 	//----------------------------------------
 	options_map = map[string]ArgValue{}
 	//----------------------------------------
@@ -85,7 +91,8 @@ processArguments :: proc(
 	}
 	//----------------------------------------
 	options = Options{}
-	err = .None
+	//----------------------------------------
+	err = nil
 	//----------------------------------------
 	for key, value in options_map {
 		//--------------------

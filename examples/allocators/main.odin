@@ -12,7 +12,7 @@ import "core:mem/virtual"
 main :: proc() {
 	//----------------------------------------
 	{
-		arena_mem := make([]byte, 1 * mem.Megabyte)
+		arena_mem, err := make([]u8, 1 * mem.Megabyte)
 		arena: mem.Arena
 		mem.arena_init(&arena, arena_mem)
 

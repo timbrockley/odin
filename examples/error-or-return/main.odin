@@ -8,8 +8,10 @@ Error :: enum {
 	SomeError,
 }
 //----------------------------------------
-ErrorUnion :: union {
+// #shared_nil is used incase other Error types from other packages are used
+ErrorUnion :: union #shared_nil {
 	SomeError,
+	// anotherPackage.SomeOtherError,
 }
 SomeError :: struct {}
 //----------------------------------------
