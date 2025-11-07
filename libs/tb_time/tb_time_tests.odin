@@ -70,8 +70,8 @@ init_test :: proc() {
 
 //------------------------------------------------------------
 
-@(fini)
-deinit_test :: proc() {virtual.arena_destroy(&arena)}
+// @(fini)
+// deinit_test :: proc() {virtual.arena_destroy(&arena)}
 
 //------------------------------------------------------------
 

@@ -7,7 +7,6 @@ package tb_time
 
 import "core:fmt"
 import "core:math"
-import "core:mem"
 import "core:os"
 import "core:path/filepath"
 import "core:strings"
@@ -564,11 +563,11 @@ hhmm :: proc(tm: time.Time) -> int {
 	return hour * 1_00 + minute
 }
 
-hh :: proc(tm: time.Time) -> int {hour, _, _ := time.clock_from_time(tm);return hour}
+hh :: proc(tm: time.Time) -> int {hour, _, _ := time.clock_from_time(tm); return hour}
 
-mm :: proc(tm: time.Time) -> int {_, minute, _ := time.clock_from_time(tm);return minute}
+mm :: proc(tm: time.Time) -> int {_, minute, _ := time.clock_from_time(tm); return minute}
 
-ss :: proc(tm: time.Time) -> int {_, _, second := time.clock_from_time(tm);return second}
+ss :: proc(tm: time.Time) -> int {_, _, second := time.clock_from_time(tm); return second}
 
 zzz :: proc(tm: time.Time) -> int {
 	_, _, _, nanosecond := time.precise_clock_from_time(tm)
@@ -639,11 +638,7 @@ processToken :: proc(
 	//---------------------------------------
 }
 
-format :: proc(
-	template: string,
-	tm: time.Time,
-	allocator: mem.Allocator = context.allocator,
-) -> string {
+format :: proc(template: string, tm: time.Time, allocator := context.allocator) -> string {
 	//---------------------------------------
 	buffer := strings.builder_make(allocator)
 	defer strings.builder_destroy(&buffer)
@@ -653,17 +648,23 @@ format :: proc(
 		//---------------------------------------
 		if processToken(
 			"utms",
-			fmt.tprint(utms(tm)),
+			fmt.aprint(utms(tm), allocator = allocator),
 			template,
 			&template_index,
 			&buffer,
 		) {continue}
 		//---------------------------------------
-		if processToken("ut", fmt.tprint(ut(tm)), template, &template_index, &buffer) {continue}
+		if processToken(
+			"ut",
+			fmt.aprint(ut(tm), allocator = allocator),
+			template,
+			&template_index,
+			&buffer,
+		) {continue}
 		//---------------------------------------
 		if processToken(
 			"ddd",
-			fmt.tprintf("%03d", ddd(tm)),
+			fmt.aprintf("%03d", ddd(tm), allocator = allocator),
 			template,
 			&template_index,
 			&buffer,
@@ -671,7 +672,7 @@ format :: proc(
 		//---------------------------------------
 		if processToken(
 			"hh",
-			fmt.tprintf("%02d", hh(tm)),
+			fmt.aprintf("%02d", hh(tm), allocator = allocator),
 			template,
 			&template_index,
 			&buffer,
@@ -679,7 +680,7 @@ format :: proc(
 		//---------------------------------------
 		if processToken(
 			"mm",
-			fmt.tprintf("%02d", mm(tm)),
+			fmt.aprintf("%02d", mm(tm), allocator = allocator),
 			template,
 			&template_index,
 			&buffer,
@@ -687,7 +688,7 @@ format :: proc(
 		//---------------------------------------
 		if processToken(
 			"ss",
-			fmt.tprintf("%02d", ss(tm)),
+			fmt.aprintf("%02d", ss(tm), allocator = allocator),
 			template,
 			&template_index,
 			&buffer,
@@ -695,7 +696,7 @@ format :: proc(
 		//---------------------------------------
 		if processToken(
 			"zzz",
-			fmt.tprintf("%03d", zzz(tm)),
+			fmt.aprintf("%03d", zzz(tm), allocator = allocator),
 			template,
 			&template_index,
 			&buffer,
@@ -711,7 +712,7 @@ format :: proc(
 		//---------------------------------------
 		if processToken(
 			"cywk",
-			fmt.tprintf("%06d", cywk(tm)),
+			fmt.aprintf("%06d", cywk(tm), allocator = allocator),
 			template,
 			&template_index,
 			&buffer,
@@ -719,7 +720,7 @@ format :: proc(
 		//---------------------------------------
 		if processToken(
 			"wk",
-			fmt.tprintf("%02d", wk(tm)),
+			fmt.aprintf("%02d", wk(tm), allocator = allocator),
 			template,
 			&template_index,
 			&buffer,
@@ -727,7 +728,7 @@ format :: proc(
 		//---------------------------------------
 		if processToken(
 			"CY",
-			fmt.tprintf("%04d", isoYear(tm)),
+			fmt.aprintf("%04d", isoYear(tm), allocator = allocator),
 			template,
 			&template_index,
 			&buffer,
@@ -735,7 +736,7 @@ format :: proc(
 		//---------------------------------------
 		if processToken(
 			"cy",
-			fmt.tprintf("%04d", cy(tm)),
+			fmt.aprintf("%04d", cy(tm), allocator = allocator),
 			template,
 			&template_index,
 			&buffer,
@@ -743,7 +744,7 @@ format :: proc(
 		//---------------------------------------
 		if processToken(
 			"c",
-			fmt.tprintf("%02d", c(tm)),
+			fmt.aprintf("%02d", c(tm), allocator = allocator),
 			template,
 			&template_index,
 			&buffer,
@@ -751,7 +752,7 @@ format :: proc(
 		//---------------------------------------
 		if processToken(
 			"y",
-			fmt.tprintf("%02d", y(tm)),
+			fmt.aprintf("%02d", y(tm), allocator = allocator),
 			template,
 			&template_index,
 			&buffer,
@@ -759,7 +760,7 @@ format :: proc(
 		//---------------------------------------
 		if processToken(
 			"m",
-			fmt.tprintf("%02d", m(tm)),
+			fmt.aprintf("%02d", m(tm), allocator = allocator),
 			template,
 			&template_index,
 			&buffer,
@@ -767,7 +768,7 @@ format :: proc(
 		//---------------------------------------
 		if processToken(
 			"d",
-			fmt.tprintf("%02d", d(tm)),
+			fmt.aprintf("%02d", d(tm), allocator = allocator),
 			template,
 			&template_index,
 			&buffer,
@@ -775,7 +776,7 @@ format :: proc(
 		//---------------------------------------
 		if processToken(
 			"q",
-			fmt.tprintf("%d", q(tm)),
+			fmt.aprintf("%d", q(tm), allocator = allocator),
 			template,
 			&template_index,
 			&buffer,
