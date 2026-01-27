@@ -5,7 +5,6 @@ package main
 // This software is licensed under the MIT License.
 //------------------------------------------------------------
 
-import "core:fmt"
 import "core:net"
 import "core:os"
 
