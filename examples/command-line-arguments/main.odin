@@ -25,7 +25,6 @@ ArgumentsError :: enum {
 	InvalidArgument,
 }
 
-
 ArgValue :: union {
 	bool,
 	string,
