@@ -8,6 +8,7 @@ package main
 import "core:fmt"
 import "core:mem"
 import "core:os"
+import "core:os/os2"
 import "core:path/filepath"
 import "core:strings"
 
@@ -35,8 +36,9 @@ main :: proc() {
 		if !os.is_dir_path(TEST_DIR) {_ = os.remove(TEST_DIR)}
 
 		// create test dir
-		_ = os.make_directory(TEST_DIR)
-
+		// _ = os.make_directory(TEST_DIR, 0o700)
+		// make_directory_all creates full path if not exist already
+		_ = os2.make_directory_all(TEST_DIR, 0o700)
 	}
 	//----------------------------------------
 	{
@@ -93,7 +95,7 @@ main :: proc() {
 	}
 	//----------------------------------------
 	{
-		// open current dir
+		// open current dir and list file details
 
 		handle, err := os.open(".")
 		if err != nil {
@@ -115,6 +117,18 @@ main :: proc() {
 				)
 			}
 			fmt.println()
+		}
+	}
+	//----------------------------------------
+	{
+		// read_all_directory_by_path
+		entries, err := os2.read_all_directory_by_path(".", context.allocator)
+		if err != nil {
+			printError(err)
+		} else {
+			for entry in entries {
+				fmt.println(entry.name, entry.type)
+			}
 		}
 	}
 	//----------------------------------------

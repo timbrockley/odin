@@ -10,21 +10,30 @@ Error :: enum {
 //----------------------------------------
 // #shared_nil is used incase other Error types from other packages are used
 ErrorUnion :: union #shared_nil {
-	SomeError,
+	SomeErrorEnum,
 	// anotherPackage.SomeOtherError,
 }
-SomeError :: struct {}
+SomeErrorEnum :: enum {
+	None,
+	AnotherError,
+}
 //----------------------------------------
 main :: proc() {
 
+	fmt.printf("err1: ")
 	result1, err1 := foo1()
 	fmt.printfln("%d, %v", result1, err1)
+	if err1 == nil {fmt.printfln("err1 == nil")}
 
+	fmt.printf("\nerr2: ")
 	err2 := foo2()
 	fmt.printfln(err2 == .None ? "Pass: %v" : "Fail: %v", err2)
+	if err2 == nil {fmt.printfln("err2 == nil")}
 
+	fmt.printf("\nerr3: ")
 	result3, err3 := foo3()
 	fmt.printfln("%d, %v", result3, err3)
+	if err3 == nil {fmt.printfln("err3 == nil")}
 
 }
 //----------------------------------------
