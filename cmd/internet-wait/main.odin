@@ -1,13 +1,12 @@
 package main
 
 //------------------------------------------------------------
-// Copyright 2025 Tim Brockley. All rights reserved.
+// Copyright 2026 Tim Brockley. All rights reserved.
 // This software is licensed under the MIT License.
 //------------------------------------------------------------
 
 import "core:fmt"
 import "core:net"
-import "core:strings"
 import "core:time"
 
 //----------------------------------------
@@ -22,6 +21,9 @@ main :: proc() {
 	//----------------------------------------
 	bar_len := 0
 	//----------------------------------------
+	bar_index: int = 0
+	bar: [MAX_BAR_LEN]u8
+	//----------------------------------------
 	for !connected() {
 		//----------------------------------------
 		bar_len += 1
@@ -30,13 +32,31 @@ main :: proc() {
 		}
 		//----------------------------------------
 		fmt.print("\rWaiting for internet connection")
-		fmt.printf(" [%-*s]", MAX_BAR_LEN, strings.repeat(".", bar_len))
+		//----------------------------------------
+		fillBar(&bar, bar_index)
+		fmt.printf(" [%s]", bar)
+		//----------------------------------------
+		bar_index = (bar_index < MAX_BAR_LEN) ? bar_index + 1 : 1
 		//----------------------------------------
 		time.sleep(DURATION)
 		//----------------------------------------
 	}
 	//----------------------------------------
 	fmt.printf("%s", CR_CLEARLINE)
+	//----------------------------------------
+}
+//----------------------------------------
+fillBar :: proc(bar: ^[MAX_BAR_LEN]u8, bar_index: int) {
+	//----------------------------------------
+	index := (bar_index < MAX_BAR_LEN) ? bar_index : MAX_BAR_LEN
+	//----------------------------------------
+	for i in 0 ..< index {
+		bar^[i] = '.'
+	}
+	//----------------------------------------
+	for i in index ..< MAX_BAR_LEN {
+		bar^[i] = ' '
+	}
 	//----------------------------------------
 }
 //----------------------------------------
