@@ -1,13 +1,5 @@
 package add
 
-//------------------------------------------------------------
-/*
-
-	Example Package / Test
-
-*/
-//------------------------------------------------------------
-
 import "core:testing"
 
 //------------------------------------------------------------
@@ -15,8 +7,8 @@ import "core:testing"
 @(test)
 test_add :: proc(t: ^testing.T) {
 	//----------------------------------------
-    result := add(2, 3)
-    testing.expect(t, result == 5, "add(2, 3) should be 5")
+	result := add(2, 3)
+	testing.expect(t, result == 5, "add(2, 3) should be 5")
 	//----------------------------------------
 }
 
