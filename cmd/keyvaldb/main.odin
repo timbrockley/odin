@@ -32,11 +32,13 @@ KeyValError :: enum {
 	None,
 	InvalidDatabaseName,
 	InvalidDirectoryLocation,
+	InvalidDatabaseFilepath,
 	InvalidConfigFile,
 	InvalidInstruction,
 	DatabaseAlreadyExists,
 	DatabaseDoesNotExist,
 	InvalidKeyName,
+	InvalidKeyFile,
 	KeyDoesNotExist,
 }
 
@@ -108,6 +110,7 @@ createDatabase :: proc(directory: string) -> (string, Error) {
 	config_filepath := filepath.join([]string{directory, config_filename})
 	//----------------------------------------
 	if os.exists(directory) {
+		if !os.is_dir(directory) {return "", .InvalidDatabaseFilepath}
 		if os.exists(
 			config_filepath,
 		) {return "", .DatabaseAlreadyExists} else {return "", .InvalidConfigFile}
@@ -272,6 +275,10 @@ setKey :: proc(directory, key, value: string) -> (string, Error) {
 	//----------------------------------------
 	filepath := filepath.join([]string{directory, key})
 	//----------------------------------------
+	if os.exists(filepath) && !os.is_file(filepath) {
+		return "", .InvalidKeyFile
+	}
+	//----------------------------------------
 	if err := os.write_entire_file_or_err(filepath, transmute([]byte)_value, true);
 	   err != nil {return "", err}
 	//----------------------------------------
@@ -298,6 +305,10 @@ getKey :: proc(directory, key: string) -> (string, Error) {
 	if !checkKeyName(key) {return "", .InvalidKeyName}
 	//----------------------------------------
 	filepath := filepath.join([]string{directory, key})
+	//----------------------------------------
+	if os.exists(filepath) && !os.is_file(filepath) {
+		return "", .InvalidKeyFile
+	}
 	//----------------------------------------
 	data, err := os.read_entire_file_or_err(filepath)
 	if err != nil {
@@ -331,6 +342,10 @@ mtimeKey :: proc(directory, key: string) -> (string, Error) {
 	//----------------------------------------
 	if !os.exists(filepath) {return "", .KeyDoesNotExist}
 	//----------------------------------------
+	if os.exists(filepath) && !os.is_file(filepath) {
+		return "", .InvalidKeyFile
+	}
+	//----------------------------------------
 	file_info, err := os2.stat(filepath, context.allocator)
 	if err != nil {return "", err}
 	//----------------------------------------
@@ -358,6 +373,10 @@ removeKey :: proc(directory, key: string) -> (string, Error) {
 	//----------------------------------------
 	filepath := filepath.join([]string{directory, key})
 	//----------------------------------------
+	if os.exists(filepath) && !os.is_file(filepath) {
+		return "", .InvalidKeyFile
+	}
+	//----------------------------------------
 	err := os.remove(filepath)
 	if err != nil {
 		// if err == os.ENOENT {return "", .KeyDoesNotExist} else {return "", err}
@@ -375,7 +394,7 @@ printHelp :: proc() -> (string, Error) {
 	buffer := strings.builder_make()
 	defer strings.builder_destroy(&buffer)
 	//------------------------------------------------------------
-	cmdName := filepath.base(os.args[0])
+	cmd_name := filepath.base(os.args[0])
 	//------------------------------------------------------------
 	lines := []string {
 		"<DATABASE_DIRECTORY> create",
@@ -391,7 +410,7 @@ printHelp :: proc() -> (string, Error) {
 	//------------------------------------------------------------
 	strings.write_string(&buffer, "\n")
 	for line in lines {
-		strings.write_string(&buffer, fmt.aprintf("%s %s\n", cmdName, line))
+		strings.write_string(&buffer, fmt.aprintf("%s %s\n", cmd_name, line))
 	}
 	strings.write_string(&buffer, "\n")
 	//------------------------------------------------------------
@@ -408,8 +427,8 @@ checkDirectoryPath :: proc(directory: string) -> Error {
 		return .InvalidDirectoryLocation
 	}
 	//------------------------------------------------------------
-	homeDirectory := os.get_env_alloc("HOME")
-	if homeDirectory != "" && directory == homeDirectory {
+	home_directory := os.get_env_alloc("HOME")
+	if home_directory != "" && directory == home_directory {
 		return .InvalidDirectoryLocation
 	}
 	//------------------------------------------------------------
@@ -442,7 +461,7 @@ checkDirectoryName :: proc(name: string) -> bool {
 
 checkKeyName :: proc(name: string) -> bool {
 	//------------------------------------------------------------
-	if name == "" {return false}
+	if name == "" || name == config_filename {return false}
 	//------------------------------------------------------------
 	for char in name {
 		switch char {
