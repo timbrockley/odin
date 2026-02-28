@@ -1,0 +1,13 @@
+# install wasmtime
+
+curl https://wasmtime.dev/install.sh -sSf | bash
+source ~/.bashrc
+
+
+# ~/.bashrc
+
+if [ -d "${HOME}/.wasmtime" ]
+then
+    export WASMTIME_HOME="${HOME}/.wasmtime"
+    export PATH="${PATH}:${WASMTIME_HOME}/bin"
+fi
