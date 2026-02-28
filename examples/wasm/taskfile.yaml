@@ -1,0 +1,23 @@
+version: '3'
+
+vars:
+  OUTPUT_PATH: "odin-out"
+
+tasks:
+  clean:
+    cmds:
+      - rm -rf {{.OUTPUT_PATH}}
+
+  build:
+    dir: "{{.OUTPUT_PATH}}"
+    cmds:
+      - odin build ../math.odin -file -out:math.wasm -target:freestanding_wasm32
+      - odin build ../wasi.odin -file -out:wasi.wasm -target:wasi_wasm32
+
+  run:
+    dir: "{{.OUTPUT_PATH}}"
+    cmds:
+      - silent: true
+        cmd: |
+          ../call-wasm.ts -- {{.CLI_ARGS}}
+          wasmtime wasi.wasm
