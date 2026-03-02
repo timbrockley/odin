@@ -1,16 +1,12 @@
 package main
 
 //------------------------------------------------------------
-// Copyright 2025 Tim Brockley. All rights reserved.
+// Copyright 2026 Tim Brockley. All rights reserved.
 // This software is licensed under the MIT License.
 //------------------------------------------------------------
 
 import "core:fmt"
-import "core:mem"
-import "core:os"
 import "core:os/os2"
-import "core:path/filepath"
-import "core:strings"
 
 //------------------------------------------------------------
 
@@ -21,23 +17,21 @@ TEST_DIR :: "test"
 main :: proc() {
 	//----------------------------------------
 	{
-		// get full path of current directory
+		// get full path of current working directory
 
-		// full_path, ok := filepath.abs(".")
-		// if !ok {printError("cwd: parse error")}
+		full_path, err := os2.get_working_directory(context.allocator)
+		if err != nil {
+			fmt.eprintf("error creating file: %v\n\n", err)
+		}
 
-		full_path := os.get_current_directory()
-
-		fmt.printf("\ncwd: %s\n\n", full_path)
+		fmt.printf("\nget_working_directory: %s\n\n", full_path)
 	}
 	//----------------------------------------
 	{
 		// if file of same name as test dir then remove it
-		if !os.is_dir_path(TEST_DIR) {_ = os.remove(TEST_DIR)}
+		if !os2.is_directory(TEST_DIR) {_ = os2.remove(TEST_DIR)}
 
 		// create test dir
-		// _ = os.make_directory(TEST_DIR, 0o700)
-		// make_directory_all creates full path if not exist already
 		_ = os2.make_directory_all(TEST_DIR, 0o700)
 	}
 	//----------------------------------------
@@ -46,36 +40,35 @@ main :: proc() {
 
 		test_data :: "test data"
 
-		handle, err := os.open(
+		handle, err := os2.open(
 			fmt.tprintf("%s/test.txt", TEST_DIR),
-			os.O_CREATE | os.O_WRONLY,
-			0o700,
+			os2.O_CREATE | os2.O_WRONLY,
+			os2.perm_number(0o700),
 		)
 		if err != nil {
 			fmt.eprintf("error creating file: %v\n\n", err)
 		} else {
 
-			defer os.close(handle)
+			defer os2.close(handle)
 
-			bytes_written, write_err := os.write_string(handle, test_data)
+			bytes_written, write_err := os2.write_string(handle, test_data)
 			if write_err != nil {
 				fmt.eprintf("error writing to file: %v\n\n", write_err)
 			}
 		}
-
 	}
 	//----------------------------------------
 	{
 		// read from file
 
-		handle, err := os.open(fmt.tprintf("%s/test.txt", TEST_DIR), os.O_RDONLY)
+		handle, err := os2.open(fmt.tprintf("%s/test.txt", TEST_DIR), os2.O_RDONLY)
 		if err != nil {
 			fmt.eprintf("error opening file: %v\n\n", err)
 		} else {
 
-			defer os.close(handle)
+			defer os2.close(handle)
 
-			size, size_err := os.file_size(handle)
+			size, size_err := os2.file_size(handle)
 			if size_err != nil {
 				fmt.println("size_error:", size_err)
 			} else {
@@ -83,7 +76,7 @@ main :: proc() {
 			}
 
 			buffer: [100]u8
-			bytes_read, read_err := os.read(handle, buffer[:])
+			bytes_read, read_err := os2.read(handle, buffer[:])
 			if read_err != nil {
 				fmt.eprintf("error reading from file: %v\n\n", read_err)
 			} else {
@@ -97,38 +90,26 @@ main :: proc() {
 	{
 		// open current dir and list file details
 
-		handle, err := os.open(".")
+		handle, err := os2.open(".")
 		if err != nil {
 			printError(err)
 		} else {
 
-			defer os.close(handle)
+			defer os2.close(handle)
 
 			// list dir entries
 
-			dir_entries, err := os.read_dir(handle, -1)
+			dir_entries, err := os2.read_directory(handle, -1, context.allocator)
 			if err != nil {printError(err)}
 			for dir_entry in dir_entries {
 				fmt.printf(
-					"is_dir: %v: name: %s (%s)\n",
-					dir_entry.is_dir,
+					"%v: name: %s (%s)\n",
+					dir_entry.type,
 					dir_entry.name,
 					dir_entry.fullpath,
 				)
 			}
 			fmt.println()
-		}
-	}
-	//----------------------------------------
-	{
-		// read_all_directory_by_path
-		entries, err := os2.read_all_directory_by_path(".", context.allocator)
-		if err != nil {
-			printError(err)
-		} else {
-			for entry in entries {
-				fmt.println(entry.name, entry.type)
-			}
 		}
 	}
 	//----------------------------------------
@@ -138,7 +119,7 @@ main :: proc() {
 
 printError :: proc(err: any) {
 	fmt.eprintf("\n\n%v\n\n", err)
-	os.exit(1)
+	os2.exit(1)
 }
 
 //------------------------------------------------------------

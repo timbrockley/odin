@@ -4,7 +4,6 @@ package main
 
 import "core:fmt"
 import "core:mem/virtual"
-import "core:os"
 import "core:os/os2"
 import "core:path/filepath"
 import "core:strings"
@@ -18,8 +17,7 @@ test_main :: proc(t: ^testing.T) {
 	//----------------------------------------
 	arena: virtual.Arena
 	context.allocator = virtual.arena_allocator(&arena)
-	//----------------------------------------
-	err: Error
+	defer virtual.arena_destroy(&arena)
 	//----------------------------------------
 	test_defaults(t)
 	test_createDatabase(t)
@@ -32,8 +30,6 @@ test_main :: proc(t: ^testing.T) {
 	test_checkDirectoryPath(t)
 	test_checkDirectoryName(t)
 	test_checkKeyName(t)
-	//----------------------------------------
-	virtual.arena_destroy(&arena)
 	//----------------------------------------
 }
 
@@ -60,18 +56,18 @@ test_createDatabase :: proc(t: ^testing.T) {
 	//----------------------------------------
 	directory = "test"
 	//----------------------------------------
-	if os.exists(directory) {_ = os2.remove_all(directory)}
+	if os2.exists(directory) {_ = os2.remove_all(directory)}
 	//----------------------------------------
 	config_filepath := filepath.join([]string{directory, config_filename})
 	//----------------------------------------
-	if os.exists(directory) {_ = os2.remove_all(directory)}
-	testing.expect_value(t, os.exists(directory), false)
+	if os2.exists(directory) {_ = os2.remove_all(directory)}
+	testing.expect_value(t, os2.exists(directory), false)
 	//----------------------------------------
 	output, err = createDatabase(directory)
 	testing.expect_value(t, output, "")
 	testing.expect_value(t, err, nil)
-	testing.expect_value(t, os.exists(directory), true)
-	testing.expect_value(t, os.exists(config_filepath), true)
+	testing.expect_value(t, os2.exists(directory), true)
+	testing.expect_value(t, os2.exists(config_filepath), true)
 	//----------------------------------------
 	output, err = createDatabase(directory)
 	testing.expect_value(t, output, "")
@@ -100,15 +96,15 @@ test_repairDatabase :: proc(t: ^testing.T) {
 	//----------------------------------------
 	config_filepath := filepath.join([]string{directory, config_filename})
 	//----------------------------------------
-	if os.exists(config_filepath) {_ = os2.remove(config_filepath)}
-	testing.expect_value(t, os.exists(config_filepath), false)
+	if os2.exists(config_filepath) {_ = os2.remove(config_filepath)}
+	testing.expect_value(t, os2.exists(config_filepath), false)
 	//----------------------------------------
 	output, err = repairDatabase(directory)
 	testing.expect_value(t, output, "")
 	testing.expect_value(t, err, nil)
-	testing.expect_value(t, os.exists(config_filepath), true)
+	testing.expect_value(t, os2.exists(config_filepath), true)
 	//----------------------------------------
-	if os.exists(directory) {_ = os2.remove_all(directory)}
+	if os2.exists(directory) {_ = os2.remove_all(directory)}
 	//----------------------------------------
 	output, err = repairDatabase(directory)
 	testing.expect_value(t, output, "")
@@ -131,7 +127,7 @@ test_listKeys :: proc(t: ^testing.T) {
 	//----------------------------------------
 	directory = "test"
 	//----------------------------------------
-	if os.exists(directory) {_ = os2.remove_all(directory)}
+	if os2.exists(directory) {_ = os2.remove_all(directory)}
 	//----------------------------------------
 	output, err = listKeys(directory)
 	testing.expect_value(t, output, "")
@@ -246,7 +242,7 @@ test_dropDatabase :: proc(t: ^testing.T) {
 	output, err = dropDatabase(directory)
 	testing.expect_value(t, output, "")
 	testing.expect_value(t, err, nil)
-	testing.expect_value(t, os.exists(directory), false)
+	testing.expect_value(t, os2.exists(directory), false)
 	//----------------------------------------
 	output, err = dropDatabase(directory)
 	testing.expect_value(t, output, "")
@@ -283,7 +279,14 @@ test_printHelp :: proc(t: ^testing.T) {
 
 test_checkDirectoryPath :: proc(t: ^testing.T) {
 	//----------------------------------------
-	directorys := []string{"", "/", "/root", "/tmp", "~", os.get_env_alloc("HOME")}
+	directorys := []string {
+		"",
+		"/",
+		"/root",
+		"/tmp",
+		"~",
+		os2.get_env_alloc("HOME", context.allocator),
+	}
 	//----------------------------------------
 	for directory in directorys {
 		err := checkDirectoryPath(directory)

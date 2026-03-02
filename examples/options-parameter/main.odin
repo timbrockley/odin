@@ -7,7 +7,7 @@ package main
 
 import "core:fmt"
 import "core:mem"
-import "core:os"
+import "core:os/os2"
 import "core:path/filepath"
 import "core:reflect"
 
@@ -78,7 +78,7 @@ newOptionsReflect :: proc(options: OptionsUnion) -> (OptionsResult, Error) {
 
 main :: proc() {
 	//---------------------------------------
-	fmt.printfln("%s: main function", filepath.base(os.args[0]))
+	fmt.printfln("%s: main function", filepath.base(os2.args[0]))
 	//---------------------------------------
 }
 

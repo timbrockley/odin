@@ -1,12 +1,12 @@
 package main
 
 //------------------------------------------------------------
-// Copyright 2025 Tim Brockley. All rights reserved.
+// Copyright 2026 Tim Brockley. All rights reserved.
 // This software is licensed under the MIT License.
 //------------------------------------------------------------
 
 import "core:fmt"
-import "core:os"
+import "core:os/os2"
 import "core:strconv"
 import "core:time"
 
@@ -19,15 +19,15 @@ main :: proc() {
 	countdown: int
 	ok: bool
 	//----------------------------------------
-	if len(os.args) > 1 {
+	if len(os2.args) > 1 {
 		//----------------------------------------
-		if countdown, ok = strconv.parse_int(os.args[1], 10); ok == false {
+		if countdown, ok = strconv.parse_int(os2.args[1], 10); ok == false {
 			return
 		}
 		//----------------------------------------
 		message: string
-		if len(os.args) > 2 {
-			message = os.args[2]
+		if len(os2.args) > 2 {
+			message = os2.args[2]
 		} else {
 			message = "Countdown"
 		}

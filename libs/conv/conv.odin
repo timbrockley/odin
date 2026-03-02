@@ -8,7 +8,7 @@ package conv
 import "core:encoding/base64"
 import "core:fmt"
 import "core:mem"
-import "core:os"
+import "core:os/os2"
 import "core:path/filepath"
 
 //------------------------------------------------------------
@@ -593,7 +593,7 @@ hexValueDecode :: proc(char: u8) -> (u8, Error) {
 
 main :: proc() {
 	//---------------------------------------
-	fmt.printfln("%s: main function", filepath.base(os.args[0]))
+	fmt.printfln("%s: main function", filepath.base(os2.args[0]))
 	//---------------------------------------
 }
 
