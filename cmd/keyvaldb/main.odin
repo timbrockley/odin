@@ -246,8 +246,8 @@ setKey :: proc(directory, key, value: string) -> (string, Error) {
 		return "", .InvalidKeyFile
 	}
 	//----------------------------------------
-	// if value is blank then check stdin
-	if value == "" && !posix.isatty(posix.STDIN_FILENO) {
+	// if value is not passed then check stdin
+	if len(os2.args) <= 4 && !posix.isatty(posix.STDIN_FILENO) {
 		//----------------------------------------
 		data, err := os2.read_entire_file_from_file(os2.stdin, context.allocator)
 		if err != nil {return "", err}
