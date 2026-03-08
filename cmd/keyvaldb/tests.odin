@@ -24,7 +24,11 @@ test_main :: proc(t: ^testing.T) {
 	test_repairDatabase(t)
 	test_listKeys(t)
 	test_setKey_getKey_listKeys(t)
+	test_checkKey(t)
+	test_lenKey(t)
 	test_mtimeKey(t)
+	test_deleteKey(t)
+	test_getKey(t)
 	test_dropDatabase(t)
 	test_printHelp(t)
 	test_checkDirectoryPath(t)
@@ -193,6 +197,64 @@ test_setKey_getKey_listKeys :: proc(t: ^testing.T) {
 
 //------------------------------------------------------------
 
+test_checkKey :: proc(t: ^testing.T) {
+	//----------------------------------------
+	err: Error
+	output: string
+	//----------------------------------------
+	directory := ""
+	key := ""
+	//----------------------------------------
+	output, err = checkKey(directory, key)
+	testing.expect_value(t, output, "")
+	testing.expect_value(t, err, KeyValError.InvalidDirectoryLocation)
+	//----------------------------------------
+	directory = "test"
+	key = ""
+	//----------------------------------------
+	output, err = checkKey(directory, key)
+	testing.expect_value(t, output, "")
+	testing.expect_value(t, err, KeyValError.InvalidKeyName)
+	//----------------------------------------
+	key = "k1"
+	//----------------------------------------
+	output, err = checkKey(directory, key)
+	testing.expect_value(t, output, "")
+	testing.expect_value(t, err, nil)
+	//----------------------------------------
+}
+
+//------------------------------------------------------------
+
+test_lenKey :: proc(t: ^testing.T) {
+	//----------------------------------------
+	err: Error
+	output: string
+	//----------------------------------------
+	directory := ""
+	key := ""
+	//----------------------------------------
+	output, err = lenKey(directory, key)
+	testing.expect_value(t, output, "")
+	testing.expect_value(t, err, KeyValError.InvalidDirectoryLocation)
+	//----------------------------------------
+	directory = "test"
+	key = ""
+	//----------------------------------------
+	output, err = lenKey(directory, key)
+	testing.expect_value(t, output, "")
+	testing.expect_value(t, err, KeyValError.InvalidKeyName)
+	//----------------------------------------
+	key = "k1"
+	//----------------------------------------
+	output, err = lenKey(directory, key)
+	testing.expect_value(t, output, "2")
+	testing.expect_value(t, err, nil)
+	//----------------------------------------
+}
+
+//------------------------------------------------------------
+
 test_mtimeKey :: proc(t: ^testing.T) {
 	//----------------------------------------
 	err: Error
@@ -220,6 +282,68 @@ test_mtimeKey :: proc(t: ^testing.T) {
 	fmtDate := fmt.aprintf("%04d-%02d-%02d", time.year(now), time.month(now), time.day(now))
 	//----------------------------------------
 	testing.expect(t, strings.has_prefix(output, fmtDate))
+	testing.expect_value(t, err, nil)
+	//----------------------------------------
+}
+
+//------------------------------------------------------------
+
+test_deleteKey :: proc(t: ^testing.T) {
+	//----------------------------------------
+	err: Error
+	output: string
+	//----------------------------------------
+	directory := ""
+	key := ""
+	value := ""
+	//----------------------------------------
+	output, err = deleteKey(directory, key)
+	testing.expect_value(t, output, "")
+	testing.expect_value(t, err, KeyValError.InvalidDirectoryLocation)
+	//----------------------------------------
+	directory = "test"
+	key = ""
+	value = ""
+	//----------------------------------------
+	output, err = deleteKey(directory, key)
+	testing.expect_value(t, output, "")
+	testing.expect_value(t, err, KeyValError.InvalidKeyName)
+	//----------------------------------------
+	key = "k1"
+	//----------------------------------------
+	output, err = deleteKey(directory, key)
+	testing.expect_value(t, output, "")
+	testing.expect_value(t, err, nil)
+	//----------------------------------------
+}
+
+//------------------------------------------------------------
+
+test_getKey :: proc(t: ^testing.T) {
+	//----------------------------------------
+	err: Error
+	output: string
+	//----------------------------------------
+	directory := ""
+	key := ""
+	value := ""
+	//----------------------------------------
+	output, err = getKey(directory, key)
+	testing.expect_value(t, output, "")
+	testing.expect_value(t, err, KeyValError.InvalidDirectoryLocation)
+	//----------------------------------------
+	directory = "test"
+	key = ""
+	//----------------------------------------
+	output, err = getKey(directory, key)
+	testing.expect_value(t, output, "")
+	testing.expect_value(t, err, KeyValError.InvalidKeyName)
+	//----------------------------------------
+	directory = "test"
+	key = "k1"
+	//----------------------------------------
+	output, err = getKey(directory, key)
+	testing.expect_value(t, output, "")
 	testing.expect_value(t, err, nil)
 	//----------------------------------------
 }
@@ -270,7 +394,7 @@ test_printHelp :: proc(t: ^testing.T) {
 		)
 		testing.expect(t, strings.contains(output, "<DATABASE_DIRECTORY> get <KEY>"))
 		testing.expect(t, strings.contains(output, "<DATABASE_DIRECTORY> mtime <KEY>"))
-		testing.expect(t, strings.contains(output, "<DATABASE_DIRECTORY> remove <KEY>"))
+		testing.expect(t, strings.contains(output, "<DATABASE_DIRECTORY> delete <KEY>"))
 	}
 	//----------------------------------------
 }

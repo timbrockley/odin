@@ -89,10 +89,14 @@ process_arguments :: proc() -> (string, Error) {
 		return setKey(directory, key, value)
 	case "get":
 		return getKey(directory, key)
+	case "check":
+		return checkKey(directory, key)
+	case "len":
+		return lenKey(directory, key)
 	case "mtime":
 		return mtimeKey(directory, key)
-	case "remove":
-		return removeKey(directory, key)
+	case "delete":
+		return deleteKey(directory, key)
 	case:
 		return "", .InvalidInstruction
 	}
@@ -246,8 +250,8 @@ setKey :: proc(directory, key, value: string) -> (string, Error) {
 		return "", .InvalidKeyFile
 	}
 	//----------------------------------------
-	// if value is blank then check stdin
-	if value == "" && !posix.isatty(posix.STDIN_FILENO) {
+	// if value is not passed then check stdin
+	if len(os2.args) <= 4 && !posix.isatty(posix.STDIN_FILENO) {
 		//----------------------------------------
 		data, err := os2.read_entire_file_from_file(os2.stdin, context.allocator)
 		if err != nil {return "", err}
@@ -300,6 +304,61 @@ getKey :: proc(directory, key: string) -> (string, Error) {
 
 //------------------------------------------------------------
 
+checkKey :: proc(directory, key: string) -> (string, Error) {
+	//----------------------------------------
+	if err := checkDirectoryPath(directory); err != nil {return "", err}
+	//----------------------------------------
+	if !os2.exists(directory) {return "", .DatabaseDoesNotExist}
+	//----------------------------------------
+	config_filepath := filepath.join([]string{directory, config_filename})
+	//----------------------------------------
+	if !os2.exists(config_filepath) {return "", .InvalidConfigFile}
+	//----------------------------------------
+	if !checkKeyName(key) {return "", .InvalidKeyName}
+	//----------------------------------------
+	key_filepath := filepath.join([]string{directory, key})
+	//----------------------------------------
+	if os2.exists(key_filepath) && !os2.is_file(key_filepath) {
+		return "", .InvalidKeyFile
+	}
+	//----------------------------------------
+	if !os2.exists(key_filepath) {return "", .KeyDoesNotExist}
+	//----------------------------------------
+	return "", nil
+	//----------------------------------------
+}
+
+//------------------------------------------------------------
+
+lenKey :: proc(directory, key: string) -> (string, Error) {
+	//----------------------------------------
+	if err := checkDirectoryPath(directory); err != nil {return "", err}
+	//----------------------------------------
+	if !os2.exists(directory) {return "", .DatabaseDoesNotExist}
+	//----------------------------------------
+	config_filepath := filepath.join([]string{directory, config_filename})
+	//----------------------------------------
+	if !os2.exists(config_filepath) {return "", .InvalidConfigFile}
+	//----------------------------------------
+	if !checkKeyName(key) {return "", .InvalidKeyName}
+	//----------------------------------------
+	key_filepath := filepath.join([]string{directory, key})
+	//----------------------------------------
+	if os2.exists(key_filepath) && !os2.is_file(key_filepath) {
+		return "", .InvalidKeyFile
+	}
+	//----------------------------------------
+	if !os2.exists(key_filepath) {return "", .KeyDoesNotExist}
+	//----------------------------------------
+	file_info, err := os2.stat(key_filepath, context.allocator)
+	if err != nil {return "", err}
+	//----------------------------------------
+	return fmt.aprintf("%d", file_info.size), nil
+	//----------------------------------------
+}
+
+//------------------------------------------------------------
+
 mtimeKey :: proc(directory, key: string) -> (string, Error) {
 	//----------------------------------------
 	if err := checkDirectoryPath(directory); err != nil {return "", err}
@@ -329,7 +388,7 @@ mtimeKey :: proc(directory, key: string) -> (string, Error) {
 
 //------------------------------------------------------------
 
-removeKey :: proc(directory, key: string) -> (string, Error) {
+deleteKey :: proc(directory, key: string) -> (string, Error) {
 	//----------------------------------------
 	if err := checkDirectoryPath(directory); err != nil {return "", err}
 	//----------------------------------------
@@ -373,8 +432,10 @@ printHelp :: proc() -> (string, Error) {
 		"<DATABASE_DIRECTORY> set <KEY> <VALUE>",
 		"<DATABASE_DIRECTORY> set <KEY> <<< \"STDIN_DATA\"",
 		"<DATABASE_DIRECTORY> get <KEY>",
+		"<DATABASE_DIRECTORY> check <KEY>",
+		"<DATABASE_DIRECTORY> len <KEY>",
 		"<DATABASE_DIRECTORY> mtime <KEY>",
-		"<DATABASE_DIRECTORY> remove <KEY>",
+		"<DATABASE_DIRECTORY> delete <KEY>",
 	}
 	//------------------------------------------------------------
 	strings.write_string(&buffer, "\n")
@@ -415,7 +476,7 @@ checkDirectoryName :: proc(name: string) -> bool {
 	//------------------------------------------------------------
 	for char in name {
 		switch char {
-		case '.', '_', '0' ..= '9', 'A' ..= 'Z', 'a' ..= 'z':
+		case '.', 'A' ..= 'Z', 'a' ..= 'z', '0' ..= '9', '_', '-':
 			continue
 		case:
 			return false
@@ -434,7 +495,7 @@ checkKeyName :: proc(name: string) -> bool {
 	//------------------------------------------------------------
 	for char in name {
 		switch char {
-		case '_', '0' ..= '9', 'A' ..= 'Z', 'a' ..= 'z':
+		case 'A' ..= 'Z', 'a' ..= 'z', '0' ..= '9', '_', '-':
 			continue
 		case:
 			return false
