@@ -2,7 +2,7 @@ package main
 
 import "core:fmt"
 import "core:mem"
-import "core:os/os2"
+import "core:os"
 import "core:path/filepath"
 import "core:reflect"
 import "core:strings"
@@ -63,7 +63,7 @@ processArguments :: proc(
 	//----------------------------------------
 	options_map = map[string]ArgValue{}
 	//----------------------------------------
-	for arg in os2.args[1:] {
+	for arg in os.args[1:] {
 		//--------------------
 		if strings.index(arg, "-") == 0 {
 			//--------------------
@@ -126,7 +126,7 @@ processArguments :: proc(
 
 printHelp :: proc() {
 	fmt.println()
-	fmt.printfln("Usage: %s [options] arguments...", filepath.base(os2.args[0]))
+	fmt.printfln("Usage: %s [options] arguments...", filepath.base(os.args[0]))
 	fmt.println()
 	fmt.println("Options:")
 	for i in 0 ..< reflect.struct_field_count(Options) {

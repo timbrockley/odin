@@ -8,7 +8,7 @@ package main
 import "core:bufio"
 import "core:fmt"
 import "core:mem/virtual"
-import "core:os/os2"
+import "core:os"
 import "core:path/filepath"
 import "core:slice"
 import "core:strings"
@@ -22,7 +22,7 @@ config_filename :: ".keyvaldb.conf"
 
 Error :: union #shared_nil {
 	KeyValError,
-	os2.Error,
+	os.Error,
 	bufio.Scanner_Error,
 }
 
@@ -56,7 +56,7 @@ main :: proc() {
 	//------------------------------------------------------------
 	virtual.arena_destroy(&arena)
 	//------------------------------------------------------------
-	os2.exit(err == nil ? 0 : 1)
+	os.exit(err == nil ? 0 : 1)
 	//------------------------------------------------------------
 }
 
@@ -64,17 +64,17 @@ main :: proc() {
 
 process_arguments :: proc() -> (string, Error) {
 	//------------------------------------------------------------
-	if len(os2.args) == 1 ||
-	   os2.args[1] == "help" ||
-	   os2.args[1] == "--help" ||
-	   os2.args[1] == "-h" {return printHelp()}
+	if len(os.args) == 1 ||
+	   os.args[1] == "help" ||
+	   os.args[1] == "--help" ||
+	   os.args[1] == "-h" {return printHelp()}
 	//----------------------------------------
 	directory, instruction, key, value: string
 	//----------------------------------------
-	if len(os2.args) > 1 {directory = strings.trim_right(os2.args[1], "/")}
-	if len(os2.args) > 2 {instruction = os2.args[2]}
-	if len(os2.args) > 3 {key = os2.args[3]}
-	if len(os2.args) > 4 {value = os2.args[4]}
+	if len(os.args) > 1 {directory = strings.trim_right(os.args[1], "/")}
+	if len(os.args) > 2 {instruction = os.args[2]}
+	if len(os.args) > 3 {key = os.args[3]}
+	if len(os.args) > 4 {value = os.args[4]}
 	//----------------------------------------
 	switch instruction {
 	case "create":
@@ -109,19 +109,19 @@ createDatabase :: proc(directory: string) -> (string, Error) {
 	//----------------------------------------
 	if err := checkDirectoryPath(directory); err != nil {return "", err}
 	//----------------------------------------
-	config_filepath := filepath.join([]string{directory, config_filename})
+	config_filepath, _ := filepath.join([]string{directory, config_filename}, context.allocator)
 	//----------------------------------------
-	if os2.exists(directory) {
-		if !os2.is_directory(directory) {return "", .InvalidDatabaseFilepath}
-		if os2.exists(
+	if os.exists(directory) {
+		if !os.is_directory(directory) {return "", .InvalidDatabaseFilepath}
+		if os.exists(
 			config_filepath,
 		) {return "", .DatabaseAlreadyExists} else {return "", .InvalidConfigFile}
 	} else {
-		if err := os2.make_directory_all(directory); err != nil {return "", err}
+		if err := os.make_directory_all(directory); err != nil {return "", err}
 	}
 	//----------------------------------------
-	if !os2.exists(config_filepath) {
-		if _, err := os2.create(config_filepath); err != nil {return "", err}
+	if !os.exists(config_filepath) {
+		if _, err := os.create(config_filepath); err != nil {return "", err}
 	}
 	//----------------------------------------
 	return "", nil
@@ -134,12 +134,12 @@ repairDatabase :: proc(directory: string) -> (string, Error) {
 	//----------------------------------------
 	if err := checkDirectoryPath(directory); err != nil {return "", err}
 	//----------------------------------------
-	if !os2.exists(directory) {return "", .DatabaseDoesNotExist}
+	if !os.exists(directory) {return "", .DatabaseDoesNotExist}
 	//----------------------------------------
-	config_filepath := filepath.join([]string{directory, config_filename})
+	config_filepath, _ := filepath.join([]string{directory, config_filename}, context.allocator)
 	//----------------------------------------
-	if !os2.exists(config_filepath) {
-		if _, err := os2.create(config_filepath); err != nil {return "", err}
+	if !os.exists(config_filepath) {
+		if _, err := os.create(config_filepath); err != nil {return "", err}
 	}
 	//----------------------------------------
 	return "", nil
@@ -152,12 +152,12 @@ dropDatabase :: proc(directory: string) -> (string, Error) {
 	//----------------------------------------
 	if err := checkDirectoryPath(directory); err != nil {return "", err}
 	//----------------------------------------
-	if !os2.exists(directory) {return "", .DatabaseDoesNotExist}
+	if !os.exists(directory) {return "", .DatabaseDoesNotExist}
 	//----------------------------------------
-	config_filepath := filepath.join([]string{directory, config_filename})
+	config_filepath, _ := filepath.join([]string{directory, config_filename}, context.allocator)
 	//----------------------------------------
-	if !os2.exists(config_filepath) {return "", .InvalidConfigFile} else {
-		if err := os2.remove_all(directory); err != nil {return "", err}
+	if !os.exists(config_filepath) {return "", .InvalidConfigFile} else {
+		if err := os.remove_all(directory); err != nil {return "", err}
 	}
 	//----------------------------------------
 	return "", nil
@@ -170,13 +170,13 @@ listKeys :: proc(directory: string) -> (string, Error) {
 	//----------------------------------------
 	if err := checkDirectoryPath(directory); err != nil {return "", err}
 	//----------------------------------------
-	if !os2.exists(directory) {return "", .DatabaseDoesNotExist}
+	if !os.exists(directory) {return "", .DatabaseDoesNotExist}
 	//----------------------------------------
-	config_filepath := filepath.join([]string{directory, config_filename})
+	config_filepath, _ := filepath.join([]string{directory, config_filename}, context.allocator)
 	//----------------------------------------
-	if !os2.exists(config_filepath) {return "", .InvalidConfigFile}
+	if !os.exists(config_filepath) {return "", .InvalidConfigFile}
 	//----------------------------------------
-	entries, err := os2.read_all_directory_by_path(directory, context.allocator)
+	entries, err := os.read_all_directory_by_path(directory, context.allocator)
 	if err != nil {return "", err}
 	//----------------------------------------
 	if len(entries) < 2 {return "no key-value pairs exist\n", nil}
@@ -190,7 +190,7 @@ listKeys :: proc(directory: string) -> (string, Error) {
 	//----------------------------------------
 	rows := [dynamic]Row{}
 	//----------------------------------------
-	slice.sort_by(entries, proc(a, b: os2.File_Info) -> bool {
+	slice.sort_by(entries, proc(a, b: os.File_Info) -> bool {
 		return a.name < b.name
 	})
 	//----------------------------------------
@@ -203,9 +203,9 @@ listKeys :: proc(directory: string) -> (string, Error) {
 		//----------------------------------------
 		key := entry.name
 		//----------------------------------------
-		key_filepath := filepath.join([]string{directory, key})
+		key_filepath, _ := filepath.join([]string{directory, key}, context.allocator)
 		//----------------------------------------
-		value, err := os2.read_entire_file_from_path(key_filepath, context.allocator)
+		value, err := os.read_entire_file_from_path(key_filepath, context.allocator)
 		if err != nil {return "", err}
 		//----------------------------------------
 		escapeBytes(value)
@@ -236,34 +236,34 @@ setKey :: proc(directory, key, value: string) -> (string, Error) {
 	//----------------------------------------
 	if err := checkDirectoryPath(directory); err != nil {return "", err}
 	//----------------------------------------
-	if !os2.exists(directory) {return "", .DatabaseDoesNotExist}
+	if !os.exists(directory) {return "", .DatabaseDoesNotExist}
 	//----------------------------------------
-	config_filepath := filepath.join([]string{directory, config_filename})
+	config_filepath, _ := filepath.join([]string{directory, config_filename}, context.allocator)
 	//----------------------------------------
-	if !os2.exists(config_filepath) {return "", .InvalidConfigFile}
+	if !os.exists(config_filepath) {return "", .InvalidConfigFile}
 	//----------------------------------------
 	if !checkKeyName(key) {return "", .InvalidKeyName}
 	//----------------------------------------
-	key_filepath := filepath.join([]string{directory, key})
+	key_filepath, _ := filepath.join([]string{directory, key}, context.allocator)
 	//----------------------------------------
-	if os2.exists(key_filepath) && !os2.is_file(key_filepath) {
+	if os.exists(key_filepath) && !os.is_file(key_filepath) {
 		return "", .InvalidKeyFile
 	}
 	//----------------------------------------
 	// if value is not passed then check stdin
-	if len(os2.args) <= 4 && !posix.isatty(posix.STDIN_FILENO) {
+	if len(os.args) <= 4 && !posix.isatty(posix.STDIN_FILENO) {
 		//----------------------------------------
-		data, err := os2.read_entire_file_from_file(os2.stdin, context.allocator)
+		data, err := os.read_entire_file_from_file(os.stdin, context.allocator)
 		if err != nil {return "", err}
 		//----------------------------------------
-		if err := os2.write_entire_file(key_filepath, string(data), os2.perm_number(0o770));
+		if err := os.write_entire_file(key_filepath, string(data), os.perm_number(0o770));
 		   err != nil {
 			return "", err
 		}
 		//----------------------------------------
 	} else {
 		//----------------------------------------
-		if err := os2.write_entire_file_from_string(key_filepath, value, os2.perm_number(0o770));
+		if err := os.write_entire_file_from_string(key_filepath, value, os.perm_number(0o770));
 		   err != nil {return "", err}
 		//----------------------------------------
 	}
@@ -278,24 +278,24 @@ getKey :: proc(directory, key: string) -> (string, Error) {
 	//----------------------------------------
 	if err := checkDirectoryPath(directory); err != nil {return "", err}
 	//----------------------------------------
-	if !os2.exists(directory) {return "", .DatabaseDoesNotExist}
+	if !os.exists(directory) {return "", .DatabaseDoesNotExist}
 	//----------------------------------------
-	config_filepath := filepath.join([]string{directory, config_filename})
+	config_filepath, _ := filepath.join([]string{directory, config_filename}, context.allocator)
 	//----------------------------------------
-	if !os2.exists(config_filepath) {return "", .InvalidConfigFile}
+	if !os.exists(config_filepath) {return "", .InvalidConfigFile}
 	//----------------------------------------
 	if !checkKeyName(key) {return "", .InvalidKeyName}
 	//----------------------------------------
-	key_filepath := filepath.join([]string{directory, key})
+	key_filepath, _ := filepath.join([]string{directory, key}, context.allocator)
 	//----------------------------------------
-	if os2.exists(key_filepath) && !os2.is_file(key_filepath) {
+	if os.exists(key_filepath) && !os.is_file(key_filepath) {
 		return "", .InvalidKeyFile
 	}
 	//----------------------------------------
-	// if !os2.exists(key_filepath) {return "", .KeyDoesNotExist}
-	if !os2.exists(key_filepath) {return "", nil}
+	// if !os.exists(key_filepath) {return "", .KeyDoesNotExist}
+	if !os.exists(key_filepath) {return "", nil}
 	//----------------------------------------
-	data, err := os2.read_entire_file_from_path(key_filepath, context.allocator)
+	data, err := os.read_entire_file_from_path(key_filepath, context.allocator)
 	if err != nil {return "", err}
 	//----------------------------------------
 	return string(data), nil
@@ -308,21 +308,21 @@ checkKey :: proc(directory, key: string) -> (string, Error) {
 	//----------------------------------------
 	if err := checkDirectoryPath(directory); err != nil {return "", err}
 	//----------------------------------------
-	if !os2.exists(directory) {return "", .DatabaseDoesNotExist}
+	if !os.exists(directory) {return "", .DatabaseDoesNotExist}
 	//----------------------------------------
-	config_filepath := filepath.join([]string{directory, config_filename})
+	config_filepath, _ := filepath.join([]string{directory, config_filename}, context.allocator)
 	//----------------------------------------
-	if !os2.exists(config_filepath) {return "", .InvalidConfigFile}
+	if !os.exists(config_filepath) {return "", .InvalidConfigFile}
 	//----------------------------------------
 	if !checkKeyName(key) {return "", .InvalidKeyName}
 	//----------------------------------------
-	key_filepath := filepath.join([]string{directory, key})
+	key_filepath, _ := filepath.join([]string{directory, key}, context.allocator)
 	//----------------------------------------
-	if os2.exists(key_filepath) && !os2.is_file(key_filepath) {
+	if os.exists(key_filepath) && !os.is_file(key_filepath) {
 		return "", .InvalidKeyFile
 	}
 	//----------------------------------------
-	if !os2.exists(key_filepath) {return "", .KeyDoesNotExist}
+	if !os.exists(key_filepath) {return "", .KeyDoesNotExist}
 	//----------------------------------------
 	return "", nil
 	//----------------------------------------
@@ -334,23 +334,23 @@ lenKey :: proc(directory, key: string) -> (string, Error) {
 	//----------------------------------------
 	if err := checkDirectoryPath(directory); err != nil {return "", err}
 	//----------------------------------------
-	if !os2.exists(directory) {return "", .DatabaseDoesNotExist}
+	if !os.exists(directory) {return "", .DatabaseDoesNotExist}
 	//----------------------------------------
-	config_filepath := filepath.join([]string{directory, config_filename})
+	config_filepath, _ := filepath.join([]string{directory, config_filename}, context.allocator)
 	//----------------------------------------
-	if !os2.exists(config_filepath) {return "", .InvalidConfigFile}
+	if !os.exists(config_filepath) {return "", .InvalidConfigFile}
 	//----------------------------------------
 	if !checkKeyName(key) {return "", .InvalidKeyName}
 	//----------------------------------------
-	key_filepath := filepath.join([]string{directory, key})
+	key_filepath, _ := filepath.join([]string{directory, key}, context.allocator)
 	//----------------------------------------
-	if os2.exists(key_filepath) && !os2.is_file(key_filepath) {
+	if os.exists(key_filepath) && !os.is_file(key_filepath) {
 		return "", .InvalidKeyFile
 	}
 	//----------------------------------------
-	if !os2.exists(key_filepath) {return "", .KeyDoesNotExist}
+	if !os.exists(key_filepath) {return "", .KeyDoesNotExist}
 	//----------------------------------------
-	file_info, err := os2.stat(key_filepath, context.allocator)
+	file_info, err := os.stat(key_filepath, context.allocator)
 	if err != nil {return "", err}
 	//----------------------------------------
 	return fmt.aprintf("%d", file_info.size), nil
@@ -363,23 +363,23 @@ mtimeKey :: proc(directory, key: string) -> (string, Error) {
 	//----------------------------------------
 	if err := checkDirectoryPath(directory); err != nil {return "", err}
 	//----------------------------------------
-	if !os2.exists(directory) {return "", .DatabaseDoesNotExist}
+	if !os.exists(directory) {return "", .DatabaseDoesNotExist}
 	//----------------------------------------
-	config_filepath := filepath.join([]string{directory, config_filename})
+	config_filepath, _ := filepath.join([]string{directory, config_filename}, context.allocator)
 	//----------------------------------------
-	if !os2.exists(config_filepath) {return "", .InvalidConfigFile}
+	if !os.exists(config_filepath) {return "", .InvalidConfigFile}
 	//----------------------------------------
 	if !checkKeyName(key) {return "", .InvalidKeyName}
 	//----------------------------------------
-	key_filepath := filepath.join([]string{directory, key})
+	key_filepath, _ := filepath.join([]string{directory, key}, context.allocator)
 	//----------------------------------------
-	if !os2.exists(key_filepath) {return "", .KeyDoesNotExist}
+	if !os.exists(key_filepath) {return "", .KeyDoesNotExist}
 	//----------------------------------------
-	if os2.exists(key_filepath) && !os2.is_file(key_filepath) {
+	if os.exists(key_filepath) && !os.is_file(key_filepath) {
 		return "", .InvalidKeyFile
 	}
 	//----------------------------------------
-	file_info, err := os2.stat(key_filepath, context.allocator)
+	file_info, err := os.stat(key_filepath, context.allocator)
 	if err != nil {return "", err}
 	//----------------------------------------
 	return fmt.aprintf("%s", file_info.modification_time), nil
@@ -392,24 +392,24 @@ deleteKey :: proc(directory, key: string) -> (string, Error) {
 	//----------------------------------------
 	if err := checkDirectoryPath(directory); err != nil {return "", err}
 	//----------------------------------------
-	if !os2.exists(directory) {return "", .DatabaseDoesNotExist}
+	if !os.exists(directory) {return "", .DatabaseDoesNotExist}
 	//----------------------------------------
-	config_filepath := filepath.join([]string{directory, config_filename})
+	config_filepath, _ := filepath.join([]string{directory, config_filename}, context.allocator)
 	//----------------------------------------
-	if !os2.exists(config_filepath) {return "", .InvalidConfigFile}
+	if !os.exists(config_filepath) {return "", .InvalidConfigFile}
 	//----------------------------------------
 	if !checkKeyName(key) {return "", .InvalidKeyName}
 	//----------------------------------------
-	key_filepath := filepath.join([]string{directory, key})
+	key_filepath, _ := filepath.join([]string{directory, key}, context.allocator)
 	//----------------------------------------
-	if os2.exists(key_filepath) && !os2.is_file(key_filepath) {
+	if os.exists(key_filepath) && !os.is_file(key_filepath) {
 		return "", .InvalidKeyFile
 	}
 	//----------------------------------------
-	// if !os2.exists(key_filepath) {return "", .KeyDoesNotExist}
-	if !os2.exists(key_filepath) {return "", nil}
+	// if !os.exists(key_filepath) {return "", .KeyDoesNotExist}
+	if !os.exists(key_filepath) {return "", nil}
 	//----------------------------------------
-	err := os2.remove(key_filepath)
+	err := os.remove(key_filepath)
 	if err != nil {return "", err}
 	//----------------------------------------
 	return "", nil
@@ -422,7 +422,7 @@ printHelp :: proc() -> (string, Error) {
 	//------------------------------------------------------------
 	buffer := strings.builder_make()
 	//------------------------------------------------------------
-	cmd_name := filepath.base(os2.args[0])
+	cmd_name := filepath.base(os.args[0])
 	//------------------------------------------------------------
 	lines := []string {
 		"<DATABASE_DIRECTORY> create",
@@ -457,7 +457,7 @@ checkDirectoryPath :: proc(directory: string) -> Error {
 		return .InvalidDirectoryLocation
 	}
 	//------------------------------------------------------------
-	home_directory := os2.get_env_alloc("HOME", context.allocator)
+	home_directory := os.get_env_alloc("HOME", context.allocator)
 	if home_directory != "" && directory == home_directory {
 		return .InvalidDirectoryLocation
 	}

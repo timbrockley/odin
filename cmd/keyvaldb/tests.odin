@@ -4,7 +4,7 @@ package main
 
 import "core:fmt"
 import "core:mem/virtual"
-import "core:os/os2"
+import "core:os"
 import "core:path/filepath"
 import "core:strings"
 import "core:testing"
@@ -60,18 +60,18 @@ test_createDatabase :: proc(t: ^testing.T) {
 	//----------------------------------------
 	directory = "test"
 	//----------------------------------------
-	if os2.exists(directory) {_ = os2.remove_all(directory)}
+	if os.exists(directory) {_ = os.remove_all(directory)}
 	//----------------------------------------
-	config_filepath := filepath.join([]string{directory, config_filename})
+	config_filepath, _ := filepath.join([]string{directory, config_filename}, context.allocator)
 	//----------------------------------------
-	if os2.exists(directory) {_ = os2.remove_all(directory)}
-	testing.expect_value(t, os2.exists(directory), false)
+	if os.exists(directory) {_ = os.remove_all(directory)}
+	testing.expect_value(t, os.exists(directory), false)
 	//----------------------------------------
 	output, err = createDatabase(directory)
 	testing.expect_value(t, output, "")
 	testing.expect_value(t, err, nil)
-	testing.expect_value(t, os2.exists(directory), true)
-	testing.expect_value(t, os2.exists(config_filepath), true)
+	testing.expect_value(t, os.exists(directory), true)
+	testing.expect_value(t, os.exists(config_filepath), true)
 	//----------------------------------------
 	output, err = createDatabase(directory)
 	testing.expect_value(t, output, "")
@@ -98,17 +98,17 @@ test_repairDatabase :: proc(t: ^testing.T) {
 	testing.expect_value(t, output, "")
 	testing.expect_value(t, err, nil)
 	//----------------------------------------
-	config_filepath := filepath.join([]string{directory, config_filename})
+	config_filepath, _ := filepath.join([]string{directory, config_filename}, context.allocator)
 	//----------------------------------------
-	if os2.exists(config_filepath) {_ = os2.remove(config_filepath)}
-	testing.expect_value(t, os2.exists(config_filepath), false)
+	if os.exists(config_filepath) {_ = os.remove(config_filepath)}
+	testing.expect_value(t, os.exists(config_filepath), false)
 	//----------------------------------------
 	output, err = repairDatabase(directory)
 	testing.expect_value(t, output, "")
 	testing.expect_value(t, err, nil)
-	testing.expect_value(t, os2.exists(config_filepath), true)
+	testing.expect_value(t, os.exists(config_filepath), true)
 	//----------------------------------------
-	if os2.exists(directory) {_ = os2.remove_all(directory)}
+	if os.exists(directory) {_ = os.remove_all(directory)}
 	//----------------------------------------
 	output, err = repairDatabase(directory)
 	testing.expect_value(t, output, "")
@@ -131,7 +131,7 @@ test_listKeys :: proc(t: ^testing.T) {
 	//----------------------------------------
 	directory = "test"
 	//----------------------------------------
-	if os2.exists(directory) {_ = os2.remove_all(directory)}
+	if os.exists(directory) {_ = os.remove_all(directory)}
 	//----------------------------------------
 	output, err = listKeys(directory)
 	testing.expect_value(t, output, "")
@@ -366,7 +366,7 @@ test_dropDatabase :: proc(t: ^testing.T) {
 	output, err = dropDatabase(directory)
 	testing.expect_value(t, output, "")
 	testing.expect_value(t, err, nil)
-	testing.expect_value(t, os2.exists(directory), false)
+	testing.expect_value(t, os.exists(directory), false)
 	//----------------------------------------
 	output, err = dropDatabase(directory)
 	testing.expect_value(t, output, "")
@@ -409,7 +409,7 @@ test_checkDirectoryPath :: proc(t: ^testing.T) {
 		"/root",
 		"/tmp",
 		"~",
-		os2.get_env_alloc("HOME", context.allocator),
+		os.get_env_alloc("HOME", context.allocator),
 	}
 	//----------------------------------------
 	for directory in directorys {

@@ -1,7 +1,7 @@
 package main
 
 import "core:fmt"
-import "core:os/os2"
+import "core:os"
 import "core:path/filepath"
 import "core:testing"
 
@@ -63,7 +63,7 @@ safe_slice_value_test :: proc(t: ^testing.T) {
 //------------------------------------------------------------
 
 main :: proc() {
-	fmt.printfln("%s: main function", filepath.base(os2.args[0]))
+	fmt.printfln("%s: main function", filepath.base(os.args[0]))
 }
 
 //------------------------------------------------------------

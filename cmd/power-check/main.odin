@@ -7,7 +7,7 @@ package main
 
 import "core:fmt"
 import "core:mem"
-import os "core:os/os2"
+import "core:os"
 import "core:strings"
 
 //------------------------------------------------------------

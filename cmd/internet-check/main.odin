@@ -6,7 +6,7 @@ package main
 //------------------------------------------------------------
 
 import "core:net"
-import "core:os/os2"
+import "core:os"
 
 ADDRESS := net.IP4_Address{1, 1, 1, 1}
 PORT := 53
@@ -15,9 +15,9 @@ main :: proc() {
 	//----------------------------------------
 	tcp_socket, err := net.dial_tcp_from_address_and_port(ADDRESS, PORT)
 	//----------------------------------------
-	if err != nil {os2.exit(1)}
+	if err != nil {os.exit(1)}
 	//----------------------------------------
 	net.close(tcp_socket)
-	os2.exit(0)
+	os.exit(0)
 	//----------------------------------------
 }
