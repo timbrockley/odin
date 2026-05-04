@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 vars:
   OUTPUT_PATH: "odin-out"
@@ -17,7 +17,6 @@ tasks:
       - rm -f {{.TASKFILE_DIR}}/{{.OUTPUT_PATH}}/zigmain.o
 
   run:
-    deps: [build]
     dir: "{{.OUTPUT_PATH}}"
     cmds:
       - ./zigmain {{.CLI_ARGS}}

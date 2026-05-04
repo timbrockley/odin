@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 vars:
   OUTPUT_PATH: "odin-out"
@@ -21,7 +21,6 @@ tasks:
       - rm -f {{.TASKFILE_DIR}}/{{.OUTPUT_PATH}}/main.odin
 
   run:
-    deps: [build]
     dir: "{{.OUTPUT_PATH}}"
     cmds:
       - ./cmain {{.CLI_ARGS}}
