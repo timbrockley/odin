@@ -1,0 +1,34 @@
+version: '3'
+
+vars:
+  CACHE_PATH: ".zig-cache"
+  OUTPUT_PATH: "zig-out"
+
+tasks:
+  clean:
+    cmds:
+      - rm -rf {{.CACHE_PATH}} {{.OUTPUT_PATH}}
+
+  build:
+    dir: "{{.OUTPUT_PATH}}"
+    cmds:
+      - zig build-lib ../libextern.zig -femit-bin=libextern.so -dynamic -fstrip -O ReleaseSmall -target native -mcpu=baseline
+      - cp ../main.odin .
+      - odin build main.odin -file -out:main -no-rpath -o:speed
+      - patchelf --replace-needed liblibextern.so ./libextern.so main
+      - patchelf --set-soname liblibextern.so libextern.so
+
+  debug:
+    dir: "{{.OUTPUT_PATH}}"
+    cmds:
+      - echo "REVERTING TO ReleaseSmall (debug mode not used for this example)"
+      - zig build-lib ../libextern.zig -femit-bin=libextern.so -dynamic -fstrip -O ReleaseSmall -target native -mcpu=baseline
+      - cp ../main.odin .
+      - odin build main.odin -file -out:main -no-rpath -o:speed
+      - patchelf --replace-needed liblibextern.so ./libextern.so main
+      - patchelf --set-soname liblibextern.so libextern.so
+
+  run:
+    dir: "{{.OUTPUT_PATH}}"
+    cmds:
+      - ./main {{.CLI_ARGS}}
