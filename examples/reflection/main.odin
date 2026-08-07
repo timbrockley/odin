@@ -11,11 +11,10 @@ Error :: union {
 }
 
 ReflectError :: enum {
-	InvalidStructType,
-	InvalidStructInstance,
-	InvalidStructField,
 	InvalidValue,
 	InvalidValueType,
+	FieldNotFound,
+	FieldTypeMismatch,
 }
 
 //----------------------------------------
@@ -113,11 +112,11 @@ main :: proc() {
 		//----------------------------------------
 		switch name {
 		case "x":
-			err = struct_field_set_value(Foo, &foo, field.name, 0)
+			err = setStructFieldValue(&foo, field.name, 0)
 		case "y":
-			err = struct_field_set_value(Foo, &foo, field.name, "new_value")
+			err = setStructFieldValue(&foo, field.name, "new_value")
 		case "z":
-			err = struct_field_set_value(Foo, &foo, field.name, false)
+			err = setStructFieldValue(&foo, field.name, false)
 		}
 		//----------------------------------------
 		if err != nil {fmt.eprintf("\n%v\n", err)}
@@ -132,22 +131,25 @@ main :: proc() {
 //----------------------------------------
 
 @(require_results)
-struct_field_set_value :: proc(
-	$T: typeid,
-	structInstance: ^T,
-	field_name: string,
-	value: any,
-) -> Error {
+setStructFieldValue :: proc(struct_instance: ^$T, field_name: string, value: any) -> Error {
 	//----------------------------------------
 	struct_field := reflect.struct_field_by_name(typeid_of(T), field_name)
 	//----------------------------------------
-	if struct_field.type == nil {return .InvalidStructType}
+	if struct_field.type == nil {return .FieldNotFound}
 	//----------------------------------------
-	if value == nil || value.data == nil {return .InvalidValue}
+	struct_field_ptr := rawptr(uintptr(struct_instance) + struct_field.offset)
 	//----------------------------------------
-	struct_field_ptr := rawptr(uintptr(structInstance) + struct_field.offset)
-	//----------------------------------------
-	mem.copy(struct_field_ptr, value.data, struct_field.type.size)
+	if value == nil || value.data == nil {
+		//----------------------------------------
+		mem.set(struct_field_ptr, 0, struct_field.type.size)
+		//----------------------------------------
+	} else {
+		//----------------------------------------
+		if struct_field.type.id != value.id {return .FieldTypeMismatch}
+		//----------------------------------------
+		mem.copy(struct_field_ptr, value.data, struct_field.type.size)
+		//----------------------------------------
+	}
 	//----------------------------------------
 	return nil
 	//----------------------------------------
