@@ -6,6 +6,7 @@ package sqlite
 //--------------------------------------------------------------------------------
 import "core:fmt"
 import "core:mem"
+import "core:mem/virtual"
 import "core:path/filepath"
 import "core:reflect"
 //--------------------------------------------------------------------------------
@@ -49,8 +50,11 @@ SQLiteColumn :: struct {
 //--------------------------------------------------------------------------------
 SQLiteColumnsTable :: struct {
 	//----------------------------------------
+	allocator:      mem.Allocator,
+	arena_ptr:      ^virtual.Arena,
+	//----------------------------------------
 	sqlite_columns: [dynamic]SQLiteColumn,
-	column_data:    [dynamic][]u8,
+	//----------------------------------------
 	row_count:      int,
 	column_count:   int,
 	//----------------------------------------
@@ -75,6 +79,7 @@ Error :: union #shared_nil {
 //--------------------------------------------------------------------------------
 SQLiteError :: enum {
 	None,
+	AllocationError,
 	SQLiteOpenError,
 	InvalidDBHandle,
 	InvalidStmtHandle,
@@ -540,7 +545,189 @@ sqliteFree :: proc(ptr: rawptr) {
 //--------------------------------------------------------------------------------
 //################################################################################
 //--------------------------------------------------------------------------------
-queryCallback :: proc(
+getSQLiteColumnsTable :: proc(
+	self: ^Self,
+	sql: cstring,
+	allocator: mem.Allocator = context.allocator,
+) -> (
+	^SQLiteColumnsTable,
+	Error,
+) {
+	//------------------------------------------------------------
+	clearErrorMessage(self)
+	//------------------------------------------------------------
+	if self.db_handle == nil {
+		return nil, returnError(self, SQLITE_MISUSE, "invalid db_handle", .InvalidDBHandle)
+	}
+	//------------------------------------------------------------
+	stmt_handle: ^rawptr = nil
+	//------------------------------------------------------------
+	rc := sqlite3_prepare_v2(self.db_handle, sql, -1, &stmt_handle, nil)
+	if rc != SQLITE_OK {
+		return nil, returnError(self, rc, sqliteErrmsg(self), .SQLitePrepareError)
+	}
+	//------------------------------------------------------------
+	defer _ = sqlite3_finalize(stmt_handle)
+	//------------------------------------------------------------
+	arena_ptr, arena_err := new(virtual.Arena, allocator)
+	if arena_err != nil {
+		return nil, returnError(self, SQLITE_NOMEM, "alloc error: arena_ptr", arena_err)
+	}
+	arena_allocator := virtual.arena_allocator(arena_ptr)
+	//------------------------------------------------------------
+	table, table_err := new(SQLiteColumnsTable, arena_allocator)
+	if table_err != nil {
+		return nil, returnError(self, SQLITE_NOMEM, "alloc error: table", table_err)
+	}
+	table.allocator = allocator
+	table.arena_ptr = arena_ptr
+	context.allocator = arena_allocator
+	//------------------------------------------------------------
+	table.column_count = int(sqlite3_column_count(stmt_handle))
+	if table.column_count == 0 do return table, nil
+	//------------------------------------------------------------
+	column_name_ptrs, make_err := make(map[cstring]rawptr, table.column_count, arena_allocator)
+	if make_err != nil {
+		return returnSQLiteColumnsTableError(
+			self,
+			table,
+			SQLITE_NOMEM,
+			"alloc error: column_name_ptrs",
+			make_err,
+		)
+	}
+	//------------------------------------------------------------
+	table.row_count = 0
+	//------------------------------------------------------------
+	for {
+		//------------------------------------------------------------
+		step_rc := sqlite3_step(stmt_handle)
+		//------------------------------------------------------------
+		if step_rc == SQLITE_ROW {
+			//------------------------------------------------------------
+			for column_index in 0 ..< table.column_count {
+				//------------------------------------------------------------
+				sqlite_column := SQLiteColumn{}
+				//------------------------------------------------------------
+				update_err := updateSQLiteColumn(self, stmt_handle, column_index, &sqlite_column)
+				if update_err != nil {
+					return returnSQLiteColumnsTableError(
+						self,
+						table,
+						SQLITE_ERROR,
+						"updateSQLiteColumn error",
+						update_err,
+					)
+				}
+				//------------------------------------------------------------
+				name_ptr: rawptr
+				if column_name_ptr, ok := column_name_ptrs[sqlite_column.name]; ok {
+					name_ptr = column_name_ptr
+				} else {
+					//----------------------------------------
+					name_len := len(sqlite_column.name)
+					//----------------------------------------
+					name_data, make_err := make([]u8, name_len + 1, arena_allocator)
+					if make_err != nil {
+						return returnSQLiteColumnsTableError(
+							self,
+							table,
+							SQLITE_NOMEM,
+							"alloc error: name_data",
+							make_err,
+						)
+					}
+					//----------------------------------------
+					name_ptr = raw_data(name_data)
+					//----------------------------------------
+					mem.copy(name_ptr, cast(rawptr)sqlite_column.name, name_len)
+					column_name_ptrs[sqlite_column.name] = name_ptr
+					//----------------------------------------
+				}
+				sqlite_column.name = cast(cstring)name_ptr
+				//------------------------------------------------------------
+				if sqlite_column.column_type == .SQLITE_TEXT ||
+				   sqlite_column.column_type == .SQLITE_BLOB {
+					//----------------------------------------
+					field_data, make_err := make([]u8, sqlite_column.len, arena_allocator)
+					if make_err != nil {
+						return returnSQLiteColumnsTableError(
+							self,
+							table,
+							SQLITE_NOMEM,
+							"alloc error: field_data",
+							make_err,
+						)
+					}
+					//----------------------------------------
+					mem.copy(raw_data(field_data), sqlite_column.ptr, sqlite_column.len)
+					sqlite_column.ptr = raw_data(field_data)
+					//----------------------------------------
+				}
+				//------------------------------------------------------------
+				append(&table.sqlite_columns, sqlite_column)
+				//------------------------------------------------------------
+			}
+			//------------------------------------------------------------
+			table.row_count += 1
+			//------------------------------------------------------------
+		} else if step_rc == SQLITE_DONE {
+			//------------------------------------------------------------
+			break
+			//------------------------------------------------------------
+		} else {
+			//------------------------------------------------------------
+			return returnSQLiteColumnsTableError(
+				self,
+				table,
+				step_rc,
+				"sqlite step error",
+				.SQLiteStepError,
+			)
+			//------------------------------------------------------------
+		}
+		//------------------------------------------------------------
+	}
+	//------------------------------------------------------------
+	return table, nil
+	//------------------------------------------------------------
+}
+//--------------------------------------------------------------------------------
+returnSQLiteColumnsTableError :: proc(
+	self: ^Self,
+	table: ^SQLiteColumnsTable,
+	rc: i32,
+	errmsg: cstring,
+	err: Error,
+) -> (
+	^SQLiteColumnsTable,
+	Error,
+) {
+	//------------------------------------------------------------
+	freeSQLiteColumnsTable(self, table)
+	//------------------------------------------------------------
+	return nil, returnError(self, rc, errmsg, err)
+	//------------------------------------------------------------
+}
+//--------------------------------------------------------------------------------
+freeSQLiteColumnsTable :: proc(self: ^Self, table: ^SQLiteColumnsTable) {
+	//------------------------------------------------------------
+	clearErrorMessage(self)
+	//------------------------------------------------------------
+	if table == nil do return
+	//------------------------------------------------------------
+	allocator := table.allocator
+	arena_ptr := table.arena_ptr
+	//------------------------------------------------------------
+	table^ = SQLiteColumnsTable{}
+	virtual.arena_destroy(arena_ptr)
+	mem.free(arena_ptr, allocator)
+	//------------------------------------------------------------
+}
+//--------------------------------------------------------------------------------
+//################################################################################
+//--------------------------------------------------------------------------------
+querySQLiteColumns :: proc(
 	self: ^Self,
 	sql: cstring,
 	callback: proc "c" (ctx: rawptr, columns_ptr: [^]SQLiteColumn, column_count: i32) -> i32,
@@ -571,11 +758,11 @@ queryCallback :: proc(
 		return returnError(self, SQLITE_ERROR, sqliteErrmsg(self), .ZeroColumnCount)
 	}
 	//------------------------------------------------------------
-	columns, make_err := make([]SQLiteColumn, column_count, context.temp_allocator)
+	sqlite_columns, make_err := make([]SQLiteColumn, column_count, context.temp_allocator)
 	if make_err != nil {
-		return returnError(self, SQLITE_NOMEM, "alloc error: columns", make_err)
+		return returnError(self, SQLITE_NOMEM, "alloc error: sqlite_columns", make_err)
 	}
-	defer delete(columns, context.temp_allocator)
+	defer delete(sqlite_columns, context.temp_allocator)
 	//------------------------------------------------------------
 	for {
 		//------------------------------------------------------------
@@ -587,13 +774,13 @@ queryCallback :: proc(
 				//------------------------------------------------------------
 				for column_index in 0 ..< column_count {
 					//----------------------------------------
-					columns[column_index] = {}
+					sqlite_columns[column_index] = {}
 					//----------------------------------------
 					err := updateSQLiteColumn(
 						self,
 						stmt_handle,
 						column_index,
-						&columns[column_index],
+						&sqlite_columns[column_index],
 					)
 					if err != nil {
 						return returnError(self, SQLITE_ERROR, "updateSQLiteColumn error", err)
@@ -601,7 +788,7 @@ queryCallback :: proc(
 					//----------------------------------------
 				}
 				//------------------------------------------------------------
-				return_code := callback(ctx, raw_data(columns), i32(column_count))
+				return_code := callback(ctx, raw_data(sqlite_columns), i32(column_count))
 				if return_code != SQLITE_OK {
 					return returnError(self, return_code, "callback aborted", .CallbackAborted)
 				}
@@ -621,145 +808,6 @@ queryCallback :: proc(
 	}
 	//------------------------------------------------------------
 	return nil
-	//------------------------------------------------------------
-}
-//--------------------------------------------------------------------------------
-//################################################################################
-//--------------------------------------------------------------------------------
-getSQLiteColumnsTable :: proc(
-	self: ^Self,
-	sql: cstring,
-	table_ptr: ^SQLiteColumnsTable,
-	allocator: mem.Allocator = context.allocator,
-) -> (
-	err: Error,
-) {
-	//------------------------------------------------------------
-	clearErrorMessage(self)
-	//------------------------------------------------------------
-	if self.db_handle == nil {
-		return returnError(self, SQLITE_MISUSE, "invalid db_handle", .InvalidDBHandle)
-	}
-	//------------------------------------------------------------
-	stmt_handle: ^rawptr = nil
-	//------------------------------------------------------------
-	rc := sqlite3_prepare_v2(self.db_handle, sql, -1, &stmt_handle, nil)
-	if rc != SQLITE_OK {
-		return returnError(self, rc, sqliteErrmsg(self), .SQLitePrepareError)
-	}
-	//------------------------------------------------------------
-	defer _ = sqlite3_finalize(stmt_handle)
-	//------------------------------------------------------------
-	table_ptr.column_count = int(sqlite3_column_count(stmt_handle))
-	if table_ptr.column_count == 0 do return nil
-	//------------------------------------------------------------
-	cached_name_ptrs, make_err := make(
-		map[cstring]rawptr,
-		table_ptr.column_count,
-		context.temp_allocator,
-	)
-	if make_err != nil {
-		return returnError(self, SQLITE_NOMEM, "alloc error: cached_name_ptrs", make_err)
-	}
-	defer delete(cached_name_ptrs)
-	//------------------------------------------------------------
-	sqlite_columns := &table_ptr.sqlite_columns
-	column_data := &table_ptr.column_data
-	//------------------------------------------------------------
-	table_ptr.row_count = 0
-	//------------------------------------------------------------
-	for {
-		//------------------------------------------------------------
-		step_rc := sqlite3_step(stmt_handle)
-		//------------------------------------------------------------
-		if step_rc == SQLITE_ROW {
-			//------------------------------------------------------------
-			for column_index in 0 ..< table_ptr.column_count {
-				//------------------------------------------------------------
-				sqlite_column := SQLiteColumn{}
-				//------------------------------------------------------------
-				err := updateSQLiteColumn(self, stmt_handle, column_index, &sqlite_column)
-				if err != nil {
-					return returnError(self, SQLITE_ERROR, "updateSQLiteColumn error", err)
-				}
-				//------------------------------------------------------------
-				name_ptr: rawptr
-				if cached_name_ptr, ok := cached_name_ptrs[sqlite_column.name]; ok {
-					name_ptr = cached_name_ptr
-				} else {
-					//----------------------------------------
-					name_len := len(sqlite_column.name)
-					//----------------------------------------
-					name_data, make_err := make([]u8, name_len + 1, allocator)
-					if make_err != nil {
-						return returnError(self, SQLITE_NOMEM, "alloc error: name_data", make_err)
-					}
-					//----------------------------------------
-					name_ptr = raw_data(name_data)
-					//----------------------------------------
-					mem.copy(name_ptr, cast(rawptr)sqlite_column.name, int(name_len))
-					cached_name_ptrs[sqlite_column.name] = name_ptr
-					//----------------------------------------
-					append(column_data, name_data)
-					//----------------------------------------
-				}
-				sqlite_column.name = cast(cstring)name_ptr
-				//------------------------------------------------------------
-				if sqlite_column.column_type == .SQLITE_TEXT ||
-				   sqlite_column.column_type == .SQLITE_BLOB {
-					//----------------------------------------
-					field_data, make_err := make([]u8, sqlite_column.len, allocator)
-					if make_err != nil {
-						return returnError(self, SQLITE_NOMEM, "alloc error: field_data", make_err)
-					}
-					//----------------------------------------
-					mem.copy(raw_data(field_data), sqlite_column.ptr, sqlite_column.len)
-					sqlite_column.ptr = raw_data(field_data)
-					//----------------------------------------
-					append(column_data, field_data)
-					//----------------------------------------
-				}
-				//------------------------------------------------------------
-				append(sqlite_columns, sqlite_column)
-				//------------------------------------------------------------
-			}
-			//------------------------------------------------------------
-			table_ptr.row_count += 1
-			//------------------------------------------------------------
-		} else if step_rc == SQLITE_DONE {
-			//------------------------------------------------------------
-			break
-			//------------------------------------------------------------
-		} else {
-			//------------------------------------------------------------
-			return returnError(self, step_rc, "sqlite step error", .SQLiteStepError)
-			//------------------------------------------------------------
-		}
-		//------------------------------------------------------------
-	}
-	//------------------------------------------------------------
-	return nil
-	//------------------------------------------------------------
-}
-//--------------------------------------------------------------------------------
-freeSQLiteColumnsTable :: proc(self: ^Self, table_ptr: ^SQLiteColumnsTable) {
-	//------------------------------------------------------------
-	clearErrorMessage(self)
-	//------------------------------------------------------------
-	if table_ptr == nil do return
-	//------------------------------------------------------------
-	if table_ptr.sqlite_columns != nil {
-		delete(table_ptr.sqlite_columns)
-	}
-	//------------------------------------------------------------
-	if table_ptr.column_data != nil {
-		for data in table_ptr.column_data {
-			delete(data)
-		}
-		delete(table_ptr.column_data)
-	}
-	//------------------------------------------------------------
-	table_ptr^ = {}
 	//------------------------------------------------------------
 }
 //--------------------------------------------------------------------------------

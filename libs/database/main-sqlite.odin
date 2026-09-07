@@ -4,6 +4,7 @@ package sqlite
 import "base:runtime"
 import "core:fmt"
 import "core:mem"
+import "core:mem/virtual"
 import "core:strings"
 import ut "libs/unittest"
 //--------------------------------------------------------------------------------
@@ -103,7 +104,7 @@ main :: proc() {
 		 	SELECT * FROM test;`
 		//------------------------------------------------------------
 		errmsg: rawptr = nil
-		rc := sqliteExec(&sqlitedb, sql, callback, cast(rawptr)&ctx, &errmsg)
+		rc := sqliteExec(&sqlitedb, sql, execCallback, cast(rawptr)&ctx, &errmsg)
 		if rc != SQLITE_OK {defer sqliteFree(errmsg)}
 		//------------------------------------------------------------
 		ut.compareInteger("sqliteExec: rc", rc, SQLITE_OK)
@@ -493,28 +494,44 @@ main :: proc() {
 			step_rc = sqliteStep(&sqlitedb, stmt_handle)
 			ut.compareInteger("sqliteStep: rc", step_rc, SQLITE_ROW)
 			ut.compareInteger("sqliteStep: returnCode", returnCode(&sqlitedb), SQLITE_ROW)
-			ut.compareCString("queryCallback", errorMessage(&sqlitedb), "another row available")
+			ut.compareCString(
+				"querySQLiteColumns",
+				errorMessage(&sqlitedb),
+				"another row available",
+			)
 			//------------------------------------------------------------
 			// sqliteStep
 			//------------------------------------------------------------
 			step_rc = sqliteStep(&sqlitedb, stmt_handle)
 			ut.compareInteger("sqliteStep: rc", step_rc, SQLITE_ROW)
 			ut.compareInteger("sqliteStep: returnCode", returnCode(&sqlitedb), SQLITE_ROW)
-			ut.compareCString("queryCallback", errorMessage(&sqlitedb), "another row available")
+			ut.compareCString(
+				"querySQLiteColumns",
+				errorMessage(&sqlitedb),
+				"another row available",
+			)
 			//------------------------------------------------------------
 			// sqliteStep
 			//------------------------------------------------------------
 			step_rc = sqliteStep(&sqlitedb, stmt_handle)
 			ut.compareInteger("sqliteStep: rc", step_rc, SQLITE_ROW)
 			ut.compareInteger("sqliteStep: returnCode", returnCode(&sqlitedb), SQLITE_ROW)
-			ut.compareCString("queryCallback", errorMessage(&sqlitedb), "another row available")
+			ut.compareCString(
+				"querySQLiteColumns",
+				errorMessage(&sqlitedb),
+				"another row available",
+			)
 			//------------------------------------------------------------
 			// sqliteStep
 			//------------------------------------------------------------
 			step_rc = sqliteStep(&sqlitedb, stmt_handle)
 			ut.compareInteger("sqliteStep: rc", step_rc, SQLITE_DONE)
 			ut.compareInteger("sqliteStep: returnCode", returnCode(&sqlitedb), SQLITE_DONE)
-			ut.compareCString("queryCallback", errorMessage(&sqlitedb), "no more rows available")
+			ut.compareCString(
+				"querySQLiteColumns",
+				errorMessage(&sqlitedb),
+				"no more rows available",
+			)
 			//------------------------------------------------------------
 		}
 		//------------------------------------------------------------
@@ -636,33 +653,33 @@ main :: proc() {
 			//------------------------------------------------------------
 			defer sqliteFreeTable(&sqlitedb, results)
 			//------------------------------------------------------------
-			table := cast([^]cstring)results
+			results_table := cast([^]cstring)results
 			//------------------------------------------------------------
 			if row_count > 0 {
-				ut.compareCString("sqliteGetTable", table[0], "id")
-				ut.compareCString("sqliteGetTable", table[1], "blob")
-				ut.compareCString("sqliteGetTable", table[2], "text")
-				ut.compareCString("sqliteGetTable", table[3], "integer")
-				ut.compareCString("sqliteGetTable", table[4], "float")
-				ut.compareCString("sqliteGetTable", table[5], "1")
-				ut.compareCString("sqliteGetTable", table[6], "blob1")
-				ut.compareCString("sqliteGetTable", table[7], "text1")
-				ut.compareCString("sqliteGetTable", table[8], "1")
-				ut.compareCString("sqliteGetTable", table[9], "1.1")
+				ut.compareCString("sqliteGetTable", results_table[0], "id")
+				ut.compareCString("sqliteGetTable", results_table[1], "blob")
+				ut.compareCString("sqliteGetTable", results_table[2], "text")
+				ut.compareCString("sqliteGetTable", results_table[3], "integer")
+				ut.compareCString("sqliteGetTable", results_table[4], "float")
+				ut.compareCString("sqliteGetTable", results_table[5], "1")
+				ut.compareCString("sqliteGetTable", results_table[6], "blob1")
+				ut.compareCString("sqliteGetTable", results_table[7], "text1")
+				ut.compareCString("sqliteGetTable", results_table[8], "1")
+				ut.compareCString("sqliteGetTable", results_table[9], "1.1")
 			}
 			if row_count > 1 {
-				ut.compareCString("sqliteGetTable", table[10], "2")
-				ut.compareCString("sqliteGetTable", table[11], "blob2")
-				ut.compareCString("sqliteGetTable", table[12], "text2")
-				ut.compareCString("sqliteGetTable", table[13], "2")
-				ut.compareCString("sqliteGetTable", table[14], "2.2")
+				ut.compareCString("sqliteGetTable", results_table[10], "2")
+				ut.compareCString("sqliteGetTable", results_table[11], "blob2")
+				ut.compareCString("sqliteGetTable", results_table[12], "text2")
+				ut.compareCString("sqliteGetTable", results_table[13], "2")
+				ut.compareCString("sqliteGetTable", results_table[14], "2.2")
 			}
 			if row_count > 2 {
-				ut.compareCString("sqliteGetTable", table[15], "3")
-				ut.compareCString("sqliteGetTable", table[16], nil)
-				ut.compareCString("sqliteGetTable", table[17], "text3")
-				ut.compareCString("sqliteGetTable", table[18], "3")
-				ut.compareCString("sqliteGetTable", table[19], "3.3")
+				ut.compareCString("sqliteGetTable", results_table[15], "3")
+				ut.compareCString("sqliteGetTable", results_table[16], nil)
+				ut.compareCString("sqliteGetTable", results_table[17], "text3")
+				ut.compareCString("sqliteGetTable", results_table[18], "3")
+				ut.compareCString("sqliteGetTable", results_table[19], "3.3")
 			}
 			//------------------------------------------------------------
 		}
@@ -706,22 +723,21 @@ main :: proc() {
 	//--------------------------------------------------------------------------------
 	{
 		//------------------------------------------------------------
-		table := SQLiteColumnsTable{}
+		table, err := getSQLiteColumnsTable(&sqlitedb, "SELECT * FROM test;")
+		defer freeSQLiteColumnsTable(&sqlitedb, table)
 		//------------------------------------------------------------
-		err := getSQLiteColumnsTable(&sqlitedb, "SELECT * FROM test;", &table)
-		//------------------------------------------------------------
-		ut.compareError("getSQLiteColumnsTable", err, nil)
-		//------------------------------------------------------------
-		if err == nil {
+		if err != nil {
 			//------------------------------------------------------------
-			defer freeSQLiteColumnsTable(&sqlitedb, &table)
+			ut.compareError("getSQLiteColumnsTable", err, nil)
 			//------------------------------------------------------------
-			table_row_len := len(table.sqlite_columns)
-			ut.compareInteger("getSQLiteColumnsTable: table_row_len", table_row_len, 15)
+		} else {
+			//------------------------------------------------------------
+			total_columns := len(table.sqlite_columns)
+			ut.compareInteger("getSQLiteColumnsTable: total_columns", total_columns, 15)
 			ut.compareInteger("getSQLiteColumnsTable: row_count", table.row_count, 3)
 			ut.compareInteger("getSQLiteColumnsTable: column_count", table.column_count, 5)
 			//------------------------------------------------------------
-			if table.row_count > 0 && table_row_len > 0 {
+			if table.row_count > 0 && total_columns > 0 {
 				//------------------------------------------------------------
 				column := table.sqlite_columns[0]
 				ut.compareCString("getSQLiteColumnsTable: name", column.name, "id")
@@ -786,47 +802,52 @@ main :: proc() {
 		//------------------------------------------------------------
 	}
 	//--------------------------------------------------------------------------------
-	// queryCallback
+	// querySQLiteColumns
 	//--------------------------------------------------------------------------------
 	{
 		//------------------------------------------------------------
-		err := queryCallback(&sqlitedb, "SELECT * FROM test;", newCallback, cast(rawptr)&ctx)
-		ut.compareError("queryCallback", err, nil)
-		ut.compareInteger("queryCallback", returnCode(&sqlitedb), SQLITE_OK)
-		ut.compareCString("queryCallback", errorMessage(&sqlitedb), "")
+		err := querySQLiteColumns(
+			&sqlitedb,
+			"SELECT * FROM test;",
+			queryCallback,
+			cast(rawptr)&ctx,
+		)
+		ut.compareError("querySQLiteColumns", err, nil)
+		ut.compareInteger("querySQLiteColumns", returnCode(&sqlitedb), SQLITE_OK)
+		ut.compareCString("querySQLiteColumns", errorMessage(&sqlitedb), "")
 
-		ut.compareInteger("queryCallback", len(ctx.fixed_rows), 3)
+		ut.compareInteger("querySQLiteColumns", len(ctx.fixed_rows), 3)
 
 		if len(ctx.fixed_rows) > 0 {
-			ut.compareInteger("queryCallback: id", ctx.fixed_rows[0].id, 1)
+			ut.compareInteger("querySQLiteColumns: id", ctx.fixed_rows[0].id, 1)
 			ut.compareBytes(
-				"queryCallback: blob",
+				"querySQLiteColumns: blob",
 				ctx.fixed_rows[0].blob,
 				[]byte{'b', 'l', 'o', 'b', '1'},
 			)
-			ut.compareString("queryCallback: text", ctx.fixed_rows[0].text, "text1")
-			ut.compareInteger("queryCallback: integer", ctx.fixed_rows[0].integer, 1)
-			ut.compareFloat("queryCallback: float", ctx.fixed_rows[0].float, 1.1)
+			ut.compareString("querySQLiteColumns: text", ctx.fixed_rows[0].text, "text1")
+			ut.compareInteger("querySQLiteColumns: integer", ctx.fixed_rows[0].integer, 1)
+			ut.compareFloat("querySQLiteColumns: float", ctx.fixed_rows[0].float, 1.1)
 		}
 
 		if len(ctx.fixed_rows) > 1 {
-			ut.compareInteger("queryCallback: id", ctx.fixed_rows[1].id, 2)
+			ut.compareInteger("querySQLiteColumns: id", ctx.fixed_rows[1].id, 2)
 			ut.compareBytes(
-				"queryCallback: blob",
+				"querySQLiteColumns: blob",
 				ctx.fixed_rows[1].blob,
 				[]byte{'b', 'l', 'o', 'b', '2'},
 			)
-			ut.compareString("queryCallback: text", ctx.fixed_rows[1].text, "text2")
-			ut.compareInteger("queryCallback: integer", ctx.fixed_rows[1].integer, 2)
-			ut.compareFloat("queryCallback: float", ctx.fixed_rows[1].float, 2.2)
+			ut.compareString("querySQLiteColumns: text", ctx.fixed_rows[1].text, "text2")
+			ut.compareInteger("querySQLiteColumns: integer", ctx.fixed_rows[1].integer, 2)
+			ut.compareFloat("querySQLiteColumns: float", ctx.fixed_rows[1].float, 2.2)
 		}
 
 		if len(ctx.fixed_rows) > 2 {
-			ut.compareInteger("queryCallback: id", ctx.fixed_rows[2].id, 3)
-			ut.compareBytes("queryCallback: blob", ctx.fixed_rows[2].blob, []byte{})
-			ut.compareString("queryCallback: text", ctx.fixed_rows[2].text, "text3")
-			ut.compareInteger("queryCallback: integer", ctx.fixed_rows[2].integer, 3)
-			ut.compareFloat("queryCallback: float", ctx.fixed_rows[2].float, 3.3)
+			ut.compareInteger("querySQLiteColumns: id", ctx.fixed_rows[2].id, 3)
+			ut.compareBytes("querySQLiteColumns: blob", ctx.fixed_rows[2].blob, []byte{})
+			ut.compareString("querySQLiteColumns: text", ctx.fixed_rows[2].text, "text3")
+			ut.compareInteger("querySQLiteColumns: integer", ctx.fixed_rows[2].integer, 3)
+			ut.compareFloat("querySQLiteColumns: float", ctx.fixed_rows[2].float, 3.3)
 		}
 		//------------------------------------------------------------
 	}
@@ -837,7 +858,12 @@ main :: proc() {
 //--------------------------------------------------------------------------------
 //################################################################################
 //--------------------------------------------------------------------------------
-callback :: proc "c" (ctx_ptr: rawptr, argc: i32, argv: [^]cstring, azColName: [^]cstring) -> i32 {
+execCallback :: proc "c" (
+	ctx_ptr: rawptr,
+	argc: i32,
+	argv: [^]cstring,
+	azColName: [^]cstring,
+) -> i32 {
 	//------------------------------------------------------------
 	ctx := cast(^CallbackContext)ctx_ptr
 	//------------------------------------------------------------
@@ -867,7 +893,11 @@ callback :: proc "c" (ctx_ptr: rawptr, argc: i32, argv: [^]cstring, azColName: [
 //--------------------------------------------------------------------------------
 //################################################################################
 //--------------------------------------------------------------------------------
-newCallback :: proc "c" (ctx_ptr: rawptr, columns_ptr: [^]SQLiteColumn, column_count: i32) -> i32 {
+queryCallback :: proc "c" (
+	ctx_ptr: rawptr,
+	columns_ptr: [^]SQLiteColumn,
+	column_count: i32,
+) -> i32 {
 	//------------------------------------------------------------
 	ctx := cast(^CallbackContext)ctx_ptr
 	//------------------------------------------------------------
