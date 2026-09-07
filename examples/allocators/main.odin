@@ -101,9 +101,9 @@ main :: proc() {
 	//----------------------------------------
 }
 //------------------------------------------------------------
-useAllocator :: proc(arena_alloc: mem.Allocator) -> mem.Allocator_Error {
+useAllocator :: proc(allocator: mem.Allocator) -> mem.Allocator_Error {
 
-	dyn_arr := make([dynamic]int, arena_alloc)
+	dyn_arr := make([dynamic]int, allocator)
 
 	for i in 0 ..< 10000 {
 		_, err := append(&dyn_arr, rand.int_max(100000))
