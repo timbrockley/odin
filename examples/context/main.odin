@@ -3,7 +3,6 @@ package main
 import "core:fmt"
 import "core:mem"
 import "core:mem/virtual"
-import "core:strings"
 
 //------------------------------------------------------------
 // context used with current thread and directly called procedures
