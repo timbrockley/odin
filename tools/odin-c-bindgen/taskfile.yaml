@@ -1,0 +1,16 @@
+version: "3"
+
+tasks:
+
+  build:
+    dir: "build"
+    cmds:
+      - mkdir -p ../bin
+      - odin build src -out:../bin/bindgen.bin -extra-linker-flags:"-L$(llvm-config --libdir)"
+
+  run:
+    cmds:
+      - test -d outputs/mysql || bin/bindgen.bin inputs/mysql
+      - test -d outputs/sqlite3 || bin/bindgen.bin inputs/sqlite3
+
+      - echo -e "\n[ERROR] logs may appear but other valid output should still exist\n"
