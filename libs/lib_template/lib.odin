@@ -1,4 +1,4 @@
-package add
+package lib
 
 //------------------------------------------------------------
 // Copyright Tim Brockley. All rights reserved.
@@ -9,10 +9,25 @@ import "core:fmt"
 import "core:os"
 import "core:path/filepath"
 
+Error :: union #shared_nil {
+	LibError,
+}
+
+LibError :: enum {
+	None,
+	InvalidInput,
+}
+
 //------------------------------------------------------------
 
-add :: proc(a, b: int) -> int {
-	return a + b
+add :: proc(a, b: int) -> (int, Error) {
+	return a + b, nil
+}
+
+//------------------------------------------------------------
+
+sub :: proc(a, b: int) -> (int, Error) {
+	return a - b, nil
 }
 
 //------------------------------------------------------------
