@@ -224,7 +224,6 @@ slideByteV4 :: proc(byte: u8) -> u8 {
 
 //------------------------------------------------------------
 
-
 obfuscateV4_encode :: proc(
 	data: string,
 	mix_chars := true,
@@ -387,7 +386,6 @@ slideByteV5 :: proc(byte: u8) -> u8 {
 }
 
 //------------------------------------------------------------
-
 
 obfuscateV5_encode :: proc(
 	data: string,
