@@ -61,7 +61,7 @@ main :: proc() {
 		errmsg: rawptr = nil
 		rc := sqlite3_exec(db_handle, sql, callback, cast(rawptr)&ctx, &errmsg)
 		if rc != SQLITE_OK {
-			fmt.eprintf("sqlite3_exec: (%d) %s\n", rc, cstring(errmsg))
+			fmt.eprintfln("sqlite3_exec: (%d) %s", rc, cstring(errmsg))
 			sqlite3_free(errmsg)
 			return
 		}
@@ -75,7 +75,7 @@ main :: proc() {
 		errmsg: rawptr = nil
 		rc := sqlite3_exec(db_handle, sql, callback, cast(rawptr)&ctx, &errmsg)
 		if rc != SQLITE_OK {
-			fmt.eprintf("sqlite3_exec: %s\n", cstring(errmsg))
+			fmt.eprintfln("sqlite3_exec: %s", cstring(errmsg))
 			sqlite3_free(errmsg)
 			return
 		}
@@ -89,7 +89,7 @@ main :: proc() {
 		errmsg: rawptr = nil
 		rc := sqlite3_exec(db_handle, sql, callback, cast(rawptr)&ctx, &errmsg)
 		if rc != SQLITE_OK {
-			fmt.eprintf("sqlite3_exec: %s\n", cstring(errmsg))
+			fmt.eprintfln("sqlite3_exec: %s", cstring(errmsg))
 			sqlite3_free(errmsg)
 			return
 		}
@@ -104,7 +104,7 @@ main :: proc() {
 		errmsg: rawptr = nil
 		rc := sqlite3_exec(db_handle, sql, callback, cast(rawptr)&ctx, &errmsg)
 		if rc != SQLITE_OK {
-			fmt.eprintf("sqlite3_exec: %s\n", cstring(errmsg))
+			fmt.eprintfln("sqlite3_exec: %s", cstring(errmsg))
 			sqlite3_free(errmsg)
 			return
 		}
@@ -118,7 +118,7 @@ main :: proc() {
 		errmsg: rawptr = nil
 		rc := sqlite3_exec(db_handle, sql, callback, cast(rawptr)&ctx, &errmsg)
 		if rc != SQLITE_OK {
-			fmt.eprintf("sqlite3_exec: %s\n", cstring(errmsg))
+			fmt.eprintfln("sqlite3_exec: %s", cstring(errmsg))
 			sqlite3_free(errmsg)
 			return
 		}

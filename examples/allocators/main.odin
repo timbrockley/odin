@@ -75,16 +75,12 @@ main :: proc() {
 
 		defer {
 			if len(track.allocation_map) > 0 {
-				fmt.eprintf("=== %v allocations not freed: ===\n", len(track.allocation_map))
-				for _, entry in track.allocation_map {
-					fmt.eprintf("- %v bytes @ %v\n", entry.size, entry.location)
-				}
+				fmt.eprintfln("=== %v allocations not freed: ===", len(track.allocation_map))
+				for _, entry in track.allocation_map {fmt.eprintfln("- %v bytes @ %v", entry.size, entry.location)}
 			}
 			if len(track.bad_free_array) > 0 {
-				fmt.eprintf("=== %v incorrect frees: ===\n", len(track.bad_free_array))
-				for entry in track.bad_free_array {
-					fmt.eprintf("- %p @ %v\n", entry.memory, entry.location)
-				}
+				fmt.eprintfln("=== %v incorrect frees: ===", len(track.bad_free_array))
+				for entry in track.bad_free_array {fmt.eprintfln("- %p @ %v", entry.memory, entry.location)}
 			}
 			mem.tracking_allocator_destroy(&track)
 		}

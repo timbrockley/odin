@@ -119,7 +119,7 @@ main :: proc() {
 			err = setStructFieldValue(&foo, field.name, false)
 		}
 		//----------------------------------------
-		if err != nil {fmt.eprintf("\n%v\n", err)}
+		if err != nil {fmt.eprintfln("\n%v", err)}
 		//----------------------------------------
 	}
 	//----------------------------------------
