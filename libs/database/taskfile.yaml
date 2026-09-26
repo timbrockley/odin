@@ -1,0 +1,37 @@
+version: "3"
+
+vars:
+  CACHE_PATH: ".odin-cache"
+  OUTPUT_PATH: "odin-out"
+
+tasks:
+  clean:
+    cmds:
+      - rm -rf {{.CACHE_PATH}} {{.OUTPUT_PATH}}
+
+  build:
+    dir: "{{.OUTPUT_PATH}}"
+    cmds:
+     - odin build ../ -out:main-sqlite -o:speed
+
+  debug:
+    dir: "{{.OUTPUT_PATH}}"
+    cmds:
+      - odin build ../ -out:main-sqlite -debug
+
+  run:
+    dir: "{{.OUTPUT_PATH}}"
+    cmds:
+      - mkdir -p libs
+      - test -s libs/unittest || ln -s ../../../unittest/ libs/
+      - cp ../database-sqlite.odin .
+      - cp ../main-sqlite.odin .
+      - odin run . -debug
+
+  test:
+    dir: "{{.OUTPUT_PATH}}"
+    cmds:
+      - cp ../database-sqlite.odin .
+      - cp ../database-sqlite_tests.odin .
+      - odin test .
+
