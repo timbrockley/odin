@@ -33,17 +33,22 @@ allocator: mem.Allocator = virtual.arena_allocator(&arena)
 options: OptionsResult
 //--------------------------------------------------------------------------------
 default_options := OptionsResult {
-	show_passes = false,
+	show_passes     = false,
+	skip_after_fail = false,
 }
 //--------------------------------------------------------------------------------
 OptionsUnion :: struct {
-	show_passes: union {
+	show_passes:     union {
+		bool,
+	},
+	skip_after_fail: union {
 		bool,
 	},
 }
 //--------------------------------------------------------------------------------
 OptionsResult :: struct {
-	show_passes: bool,
+	show_passes:     bool,
+	skip_after_fail: bool,
 }
 //--------------------------------------------------------------------------------
 UnittestError :: union #shared_nil {
@@ -161,6 +166,8 @@ printLine :: proc() {fmt.println(
 //--------------------------------------------------------------------------------
 compareTypeID :: proc(name: string, actual: typeid, expected: typeid, loc := #caller_location) {
 	//-----------------------------------------------------------
+	if options.skip_after_fail && count_failed > 0 do return
+	//-----------------------------------------------------------
 	if actual == expected {
 		//----------------------------------------
 		if options.show_passes {
@@ -187,6 +194,8 @@ compareTypeID :: proc(name: string, actual: typeid, expected: typeid, loc := #ca
 }
 //--------------------------------------------------------------------------------
 compareString :: proc(name: string, actual: string, expected: string, loc := #caller_location) {
+	//-----------------------------------------------------------
+	if options.skip_after_fail && count_failed > 0 do return
 	//-----------------------------------------------------------
 	if actual == expected {
 		//----------------------------------------
@@ -216,6 +225,8 @@ compareString :: proc(name: string, actual: string, expected: string, loc := #ca
 //--------------------------------------------------------------------------------
 compareCString :: proc(name: string, actual: cstring, expected: cstring, loc := #caller_location) {
 	//-----------------------------------------------------------
+	if options.skip_after_fail && count_failed > 0 do return
+	//-----------------------------------------------------------
 	if actual == expected {
 		//----------------------------------------
 		if options.show_passes {
@@ -244,6 +255,8 @@ compareCString :: proc(name: string, actual: cstring, expected: cstring, loc := 
 //--------------------------------------------------------------------------------
 compareBytes :: proc(name: string, actual: []byte, expected: []byte, loc := #caller_location) {
 	//-----------------------------------------------------------
+	if options.skip_after_fail && count_failed > 0 do return
+	//-----------------------------------------------------------
 	if bytes.equal(actual, expected) {
 		//----------------------------------------
 		if options.show_passes {
@@ -271,6 +284,8 @@ compareBytes :: proc(name: string, actual: []byte, expected: []byte, loc := #cal
 }
 //--------------------------------------------------------------------------------
 compareByte :: proc(name: string, actual: byte, expected: byte, loc := #caller_location) {
+	//-----------------------------------------------------------
+	if options.skip_after_fail && count_failed > 0 do return
 	//-----------------------------------------------------------
 	if actual == expected {
 		//----------------------------------------
@@ -305,6 +320,8 @@ compareInteger :: proc(
 	loc := #caller_location,
 ) {
 	//-----------------------------------------------------------
+	if options.skip_after_fail && count_failed > 0 do return
+	//-----------------------------------------------------------
 	if actual == expected {
 		//----------------------------------------
 		if options.show_passes {
@@ -332,6 +349,8 @@ compareInteger :: proc(
 }
 //--------------------------------------------------------------------------------
 compareFloat :: proc(name: string, actual: f64, expected: f64, loc := #caller_location) {
+	//-----------------------------------------------------------
+	if options.skip_after_fail && count_failed > 0 do return
 	//-----------------------------------------------------------
 	if actual == expected {
 		//----------------------------------------
@@ -361,6 +380,8 @@ compareFloat :: proc(name: string, actual: f64, expected: f64, loc := #caller_lo
 //--------------------------------------------------------------------------------
 compareBool :: proc(name: string, actual: bool, expected: bool, loc := #caller_location) {
 	//-----------------------------------------------------------
+	if options.skip_after_fail && count_failed > 0 do return
+	//-----------------------------------------------------------
 	if actual == expected {
 		//----------------------------------------
 		if options.show_passes {
@@ -388,6 +409,8 @@ compareBool :: proc(name: string, actual: bool, expected: bool, loc := #caller_l
 }
 //--------------------------------------------------------------------------------
 compareNull :: proc(name: string, actual: $T, loc := #caller_location) {
+	//-----------------------------------------------------------
+	if options.skip_after_fail && count_failed > 0 do return
 	//-----------------------------------------------------------
 	if actual == nil {
 		//----------------------------------------
@@ -417,6 +440,8 @@ compareNull :: proc(name: string, actual: $T, loc := #caller_location) {
 //--------------------------------------------------------------------------------
 compareEnum :: proc(name: string, actual: $T, expected: T, loc := #caller_location) {
 	//-----------------------------------------------------------
+	if options.skip_after_fail && count_failed > 0 do return
+	//-----------------------------------------------------------
 	if actual == expected {
 		//----------------------------------------
 		if options.show_passes {
@@ -444,6 +469,8 @@ compareEnum :: proc(name: string, actual: $T, expected: T, loc := #caller_locati
 }
 //--------------------------------------------------------------------------------
 compareError :: proc(name: string, actual: $T, expected: T, loc := #caller_location) {
+	//-----------------------------------------------------------
+	if options.skip_after_fail && count_failed > 0 do return
 	//-----------------------------------------------------------
 	if actual == expected {
 		//----------------------------------------
@@ -473,6 +500,8 @@ compareError :: proc(name: string, actual: $T, expected: T, loc := #caller_locat
 //--------------------------------------------------------------------------------
 test :: proc(name: string, condition: bool, loc := #caller_location) {
 	//-----------------------------------------------------------
+	if options.skip_after_fail && count_failed > 0 do return
+	//-----------------------------------------------------------
 	if condition {
 		//----------------------------------------
 		if options.show_passes {
@@ -487,9 +516,39 @@ test :: proc(name: string, condition: bool, loc := #caller_location) {
 		//----------------------------------------
 		printFail(loc); printfln(":     %s", name)
 		//----------------------------------------
-		printActual(); printfln(":   %v", condition)
+		printActual(); printfln(":   false")
 		//----------------------------------------
 		printExpected(); println(": true")
+		//----------------------------------------
+		printLine()
+		//----------------------------------------
+		count_failed += 1
+		//----------------------------------------
+	}
+	//-----------------------------------------------------------
+}
+//--------------------------------------------------------------------------------
+testNE :: proc(name: string, condition: bool, loc := #caller_location) {
+	//-----------------------------------------------------------
+	if options.skip_after_fail && count_failed > 0 do return
+	//-----------------------------------------------------------
+	if !condition {
+		//----------------------------------------
+		if options.show_passes {
+			printPass(loc)
+			printfln(": %s", name)
+			printLine()
+		}
+		//----------------------------------------
+		count_passed += 1
+		//----------------------------------------
+	} else {
+		//----------------------------------------
+		printFail(loc); printfln(":     %s", name)
+		//----------------------------------------
+		printActual(); println(":   true")
+		//----------------------------------------
+		printExpected(); println(": false")
 		//----------------------------------------
 		printLine()
 		//----------------------------------------
@@ -581,6 +640,10 @@ setOptionsValue :: proc(structInstance: ^$T, field_name: string, value: any) -> 
 //--------------------------------------------------------------------------------
 printSummary :: proc() {
 	//-----------------------------------------------------------
+	if options.skip_after_fail && count_failed > 0 {
+		print("(REMAINING TEST SKIPPED) ")
+	}
+	//-----------------------------------------------------------
 	printf("PASSED = %d", count_passed)
 	//-----------------------------------------------------------
 	if count_failed > 0 {printf(", FAILED = %d", count_failed)}
@@ -648,6 +711,9 @@ main :: proc() {
 
 	test("test pass", 42 == 42)
 	test("test fail", 0 == 42)
+
+	testNE("testNE pass", 0 == 42)
+	testNE("testNE fail", 42 == 42)
 	//------------------------------------------------------------
 	printSummary()
 	//------------------------------------------------------------
