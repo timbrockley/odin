@@ -4,7 +4,7 @@ import "core:fmt"
 import "core:mem"
 import "core:reflect"
 
-//----------------------------------------
+//------------------------------------------------------------
 
 Error :: union {
 	ReflectError,
@@ -17,15 +17,16 @@ ReflectError :: enum {
 	FieldTypeMismatch,
 }
 
-//----------------------------------------
+Foo :: struct {
+	x: int `tag1`,
+	y: string `json:"y_field"`,
+	z: bool,
+}
+
+//------------------------------------------------------------
+
 main :: proc() {
 	//----------------------------------------
-	Foo :: struct {
-		x: int `tag1`,
-		y: string `json:"y_field"`,
-		z: bool,
-	}
-
 	id := typeid_of(Foo)
 	names := reflect.struct_field_names(id)
 	types := reflect.struct_field_types(id)
@@ -128,9 +129,9 @@ main :: proc() {
 	fmt.println()
 	//----------------------------------------
 }
-//----------------------------------------
 
-@(require_results)
+//------------------------------------------------------------
+
 setStructFieldValue :: proc(struct_instance: ^$T, field_name: string, value: any) -> Error {
 	//----------------------------------------
 	struct_field := reflect.struct_field_by_name(typeid_of(T), field_name)
@@ -153,6 +154,25 @@ setStructFieldValue :: proc(struct_instance: ^$T, field_name: string, value: any
 	//----------------------------------------
 	return nil
 	//----------------------------------------
+}
+
+//------------------------------------------------------------
+
+setStructField :: proc(row: ^$T, field: reflect.Struct_Field, value: any) -> Error {
+	//------------------------------------------------------------
+	row_field_ptr := rawptr(uintptr(row) + field.offset)
+	//------------------------------------------------------------
+	if value == nil || value.data == nil {
+		mem.set(row_field_ptr, 0, field.type.size)
+	} else {
+		if field.type.id != value.id {
+			return .FieldTypeMismatch
+		}
+		mem.copy(row_field_ptr, value.data, field.type.size)
+	}
+	//------------------------------------------------------------
+	return nil
+	//------------------------------------------------------------
 }
 
 //------------------------------------------------------------
