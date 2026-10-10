@@ -313,12 +313,7 @@ compareByte :: proc(name: string, actual: byte, expected: byte, loc := #caller_l
 	//-----------------------------------------------------------
 }
 //--------------------------------------------------------------------------------
-compareInteger :: proc(
-	name: string,
-	#any_int actual: int,
-	#any_int expected: int,
-	loc := #caller_location,
-) {
+compareInteger :: proc(name: string, actual: $T, expected: T, loc := #caller_location) {
 	//-----------------------------------------------------------
 	if options.skip_after_fail && count_failed > 0 do return
 	//-----------------------------------------------------------
