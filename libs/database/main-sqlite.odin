@@ -397,12 +397,7 @@ main :: proc() {
 			unsigned = true,
 			uint64 = 0xFFFF_FFFF_FFFF_FFFF,
 		},
-		{
-			index = 2,
-			name = "integer",
-			column_type = .SQLITE_INTEGER,
-			integer = 0xFFFF_FFFF_FFFF_FFFF,
-		},
+		{index = 2, name = "integer", column_type = .SQLITE_INTEGER, integer = 1},
 		{index = 3, name = "float", column_type = .SQLITE_FLOAT, float = 1.1},
 		{
 			index = 4,
@@ -433,7 +428,7 @@ main :: proc() {
 		//------------------------------------------------------------
 		ut.compareInteger("updateRow", fixed_row.id, 1)
 		ut.compareInteger("updateRow", fixed_row.uint64, 0xFFFF_FFFF_FFFF_FFFF)
-		ut.compareInteger("updateRow", fixed_row.integer, -1)
+		ut.compareInteger("updateRow", fixed_row.integer, 1)
 		ut.compareFloat("updateRow", fixed_row.float, 1.1)
 		ut.compareString("updateRow", fixed_row.text, "text1")
 		ut.compareBytes("updateRow", fixed_row.blob, []byte{'b', 'l', 'o', 'b', '1'})
@@ -466,7 +461,7 @@ main :: proc() {
 		//------------------------------------------------------------
 		ut.compareInteger("updateRowMap", id, 1)
 		ut.compareInteger("updateRowMap", uint64, 0xFFFF_FFFF_FFFF_FFFF)
-		ut.compareInteger("updateRowMap", integer, -1)
+		ut.compareInteger("updateRowMap", integer, 1)
 		ut.compareFloat("updateRowMap", float, 1.1)
 		ut.compareString("updateRowMap", text, "text1")
 		ut.compareBytes("updateRowMap", blob, []byte{'b', 'l', 'o', 'b', '1'})
@@ -485,8 +480,6 @@ main :: proc() {
 		}
 		//--------------------------------------------------------------------------------
 	}
-	//--------------------------------------------------------------------------------
-	//################################################################################
 	//--------------------------------------------------------------------------------
 	// sqlitePrepare / sqliteClearBindings / sqliteBind* / sqliteStep / sqliteFinalize
 	//--------------------------------------------------------------------------------

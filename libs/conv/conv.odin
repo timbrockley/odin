@@ -16,6 +16,7 @@ import "core:path/filepath"
 Error :: union #shared_nil {
 	ConvError,
 	mem.Allocator_Error,
+	base64.Error,
 }
 
 ConvError :: enum {
@@ -211,7 +212,7 @@ base64_encode :: proc(data: string, allocator := context.allocator) -> (string, 
 	//---------------------------------------
 	output_bytes, err := base64.encode(data = data_bytes, allocator = allocator)
 	//---------------------------------------
-	if err != .None {return "", err}
+	if err != nil {return "", err}
 	//---------------------------------------
 	return string(output_bytes), nil
 	//---------------------------------------
@@ -225,7 +226,7 @@ base64_decode :: proc(data: string, allocator := context.allocator) -> (string, 
 	//---------------------------------------
 	output_bytes, err := base64.decode(data = data, allocator = allocator)
 	//---------------------------------------
-	if err != .None {return "", err}
+	if err != nil do return "", err
 	//---------------------------------------
 	return string(output_bytes), nil
 	//---------------------------------------
