@@ -30,26 +30,12 @@ arena: virtual.Arena
 allocator: mem.Allocator = virtual.arena_allocator(&arena)
 // allocator: mem.Allocator
 //--------------------------------------------------------------------------------
-options: OptionsResult
-//--------------------------------------------------------------------------------
-default_options := OptionsResult {
-	show_passes     = false,
-	skip_after_fail = false,
-}
-//--------------------------------------------------------------------------------
-OptionsUnion :: struct {
-	show_passes:     union {
-		bool,
-	},
-	skip_after_fail: union {
-		bool,
-	},
-}
-//--------------------------------------------------------------------------------
-OptionsResult :: struct {
+Options :: struct {
 	show_passes:     bool,
 	skip_after_fail: bool,
 }
+//--------------------------------------------------------------------------------
+options: Options
 //--------------------------------------------------------------------------------
 UnittestError :: union #shared_nil {
 	ChannelError,
@@ -86,7 +72,7 @@ cleanup :: proc() {
 //--------------------------------------------------------------------------------
 //################################################################################
 //--------------------------------------------------------------------------------
-init :: proc(_options: OptionsUnion = {}) {
+init :: proc(_options: Options) {
 	//-----------------------------------------------------------
 	options, _ = newOptionsReflect(_options)
 	//-----------------------------------------------------------
@@ -173,6 +159,7 @@ compareTypeID :: proc(name: string, actual: typeid, expected: typeid, loc := #ca
 		if options.show_passes {
 			printPass(loc)
 			printfln(": %s", name)
+			printLine()
 		}
 		//----------------------------------------
 		count_passed += 1
@@ -343,11 +330,11 @@ compareInteger :: proc(name: string, actual: $T, expected: T, loc := #caller_loc
 	//-----------------------------------------------------------
 }
 //--------------------------------------------------------------------------------
-compareFloat :: proc(name: string, actual: f64, expected: f64, loc := #caller_location) {
+compareFloat :: proc(name: string, actual: $T, expected: T, loc := #caller_location) {
 	//-----------------------------------------------------------
 	if options.skip_after_fail && count_failed > 0 do return
 	//-----------------------------------------------------------
-	if actual == expected {
+	if compareFloatValue(actual, expected) {
 		//----------------------------------------
 		if options.show_passes {
 			printPass(loc)
@@ -371,6 +358,10 @@ compareFloat :: proc(name: string, actual: f64, expected: f64, loc := #caller_lo
 		//----------------------------------------
 	}
 	//-----------------------------------------------------------
+}
+//--------------------------------------------------------------------------------
+compareFloatValue :: proc(a, b: $T, epsilon: T = 0.00001) -> bool {
+	return abs(a - b) <= epsilon
 }
 //--------------------------------------------------------------------------------
 compareBool :: proc(name: string, actual: bool, expected: bool, loc := #caller_location) {
@@ -592,26 +583,26 @@ rawptrToCString :: proc(ptr: rawptr) -> cstring {
 //--------------------------------------------------------------------------------
 //################################################################################
 //--------------------------------------------------------------------------------
-newOptionsReflect :: proc(options: OptionsUnion) -> (OptionsResult, UnittestError) {
+newOptionsReflect :: proc(options: $T) -> (Options, UnittestError) {
 	//------------------------------------------------------------
-	optionsResult := default_options
+	options_result: Options
 	//------------------------------------------------------------
-	id := typeid_of(OptionsUnion)
-	count := reflect.struct_field_count(id)
+	type_id := typeid_of(T)
+	count := reflect.struct_field_count(type_id)
 	//------------------------------------------------------------
 	for index := 0; index < count; index += 1 {
 		//------------------------------------------------------------
-		field := reflect.struct_field_at(id, index)
+		field := reflect.struct_field_at(type_id, index)
 		value := reflect.struct_field_value(options, field)
 		//------------------------------------------------------------
 		if reflect.is_nil(value) {continue}
 		//------------------------------------------------------------
-		err := setOptionsValue(&optionsResult, field.name, value)
-		if err != nil {return optionsResult, err}
+		err := setOptionsValue(&options_result, field.name, value)
+		if err != nil {return options_result, err}
 		//------------------------------------------------------------
 	}
 	//------------------------------------------------------------
-	return optionsResult, nil
+	return options_result, nil
 	//------------------------------------------------------------
 }
 //--------------------------------------------------------------------------------
@@ -628,6 +619,16 @@ setOptionsValue :: proc(structInstance: ^$T, field_name: string, value: any) -> 
 	mem.copy(struct_field_ptr, value.data, struct_field.type.size)
 	//------------------------------------------------------------
 	return nil
+	//------------------------------------------------------------
+}
+//--------------------------------------------------------------------------------
+getOptionsValue :: proc(options: $T, name: string) -> any {
+	//------------------------------------------------------------
+	field := reflect.struct_field_by_name(T, name)
+	//------------------------------------------------------------
+	if field.type == nil do return nil
+	//------------------------------------------------------------
+	return reflect.struct_field_value(options, field)
 	//------------------------------------------------------------
 }
 //--------------------------------------------------------------------------------
@@ -660,7 +661,7 @@ printSummary :: proc() {
 //--------------------------------------------------------------------------------
 main :: proc() {
 	//-----------------------------------------------------------
-	init({show_passes = true})
+	init(Options{show_passes = true})
 	//-----------------------------------------------------------
 	compareTypeID("compareTypeID pass", i64, i64)
 	compareTypeID("compareTypeID fail", i32, i64)
@@ -681,10 +682,10 @@ main :: proc() {
 	compareEnum("compareEnum fail", ChannelError.None, ChannelError.SendSignalError)
 
 	compareInteger("compareInteger pass", -42, -42)
-	compareInteger("compareInteger fail", 0, -42)
+	compareInteger("compareInteger fail", 0.0, -42)
 
 	compareFloat("compareFloat pass", 42.42, 42.42)
-	compareFloat("compareFloat fail", 0, 42.42)
+	compareFloat("compareFloat fail", 0.0, 42.42)
 
 	compareBool("compareBool pass", true, true)
 	compareBool("compareBool fail", false, true)
