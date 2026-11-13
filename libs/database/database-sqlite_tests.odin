@@ -70,7 +70,7 @@ checkTableName_test :: proc(t: ^testing.T) {
 @(test)
 ptrToBytes_test :: proc(t: ^testing.T) {
 	//------------------------------------------------------------
-	data := [3]byte{'A', 'B', 'C'}
+	data := [3]u8{'A', 'B', 'C'}
 	//------------------------------------------------------------
 	ptr_bytes := ptrToBytes(&data[0], len(data))
 	testing.expect_value(t, len(ptr_bytes), len(data))
@@ -117,12 +117,36 @@ ptrToBytes_test :: proc(t: ^testing.T) {
 	//------------------------------------------------------------
 }
 //--------------------------------------------------------------------------------
+// stringTobytes
+//--------------------------------------------------------------------------------
+@(test)
+stringTobytes_test :: proc(t: ^testing.T) {
+	//------------------------------------------------------------
+	empty := stringToBytes("")
+	testing.expect(t, len(empty) == 0)
+
+	bytes := stringToBytes("ABCD\xF0\x9F\x90\xA7")
+
+	testing.expect(t, len(bytes) == 8)
+
+	testing.expect(t, bytes[0] == 'A')
+	testing.expect(t, bytes[1] == 'B')
+	testing.expect(t, bytes[2] == 'C')
+	testing.expect(t, bytes[3] == 'D')
+
+	testing.expect(t, bytes[4] == 0xF0)
+	testing.expect(t, bytes[5] == 0x9F)
+	testing.expect(t, bytes[6] == 0x90)
+	testing.expect(t, bytes[7] == 0xA7)
+	//------------------------------------------------------------
+}
+//--------------------------------------------------------------------------------
 // bytesToString / bytesToCString
 //--------------------------------------------------------------------------------
 @(test)
 bytesToString_test :: proc(t: ^testing.T) {
 	//------------------------------------------------------------
-	string_bytes := []byte{'A', 'B', 'C'}
+	string_bytes := []u8{'A', 'B', 'C'}
 	{
 		result_string := bytesToString(string_bytes)
 		testing.expect(t, type_of(result_string) == string)
@@ -139,7 +163,7 @@ bytesToString_test :: proc(t: ^testing.T) {
 		testing.expect_value(t, result_string, "ABC")
 	}
 	//------------------------------------------------------------
-	cstring_bytes := []byte{'A', 'B', 'C', '\x00'}
+	cstring_bytes := []u8{'A', 'B', 'C', '\x00'}
 	{
 		result_cstring := bytesToCString(cstring_bytes)
 		testing.expect(t, type_of(result_cstring) == cstring)
@@ -170,7 +194,7 @@ updateRow_test :: proc(t: ^testing.T) {
 	//------------------------------------------------------------
 	test_rows := [6]SQLiteColumn {
 		{index = 0, name = "id", column_type = .SQLITE_INTEGER, integer = 1},
-		{index = 1, name = "uint64", column_type = .SQLITE_INTEGER, uint64 = 1},
+		{index = 1, name = "uint64", column_type = .SQLITE_INTEGER, integer = 1},
 		{index = 2, name = "integer", column_type = .SQLITE_INTEGER, integer = 1},
 		{index = 3, name = "float", column_type = .SQLITE_FLOAT, float = 1.1},
 		{

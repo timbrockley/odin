@@ -33,25 +33,25 @@ Error :: union #shared_nil {
 //--------------------------------------------------------------------------------
 SQLiteError :: enum {
 	None,
-	InvalidDBHandle,
-	InvalidStmtHandle,
-	InvalidTableName,
-	InvalidSQLiteQuery,
-	SQLiteOpenError,
-	SQLitePrepareError,
-	SQLiteFinalizeError,
-	SQLiteStepError,
-	ZeroColumnCount,
-	SQLiteMalloc64Error,
 	CallbackAborted,
-	InvalidRowCount,
-	InvalidRowType,
-	InvalidFieldName,
-	InvalidFieldType,
-	InvalidFieldCount,
-	UnknownColumnType,
 	FieldNotFound,
 	FieldTypeMismatch,
+	InvalidDBHandle,
+	InvalidFieldCount,
+	InvalidFieldName,
+	InvalidFieldType,
+	InvalidRowCount,
+	InvalidRowType,
+	InvalidSQLiteQuery,
+	InvalidStmtHandle,
+	InvalidTableName,
+	SQLiteFinalizeError,
+	SQLiteMalloc64Error,
+	SQLiteOpenError,
+	SQLitePrepareError,
+	SQLiteStepError,
+	UnknownColumnType,
+	ZeroColumnCount,
 }
 //--------------------------------------------------------------------------------
 //################################################################################
@@ -328,7 +328,7 @@ sqliteBindUInt64 :: proc(self: ^Self, stmt_handle: ^rawptr, iCol: i32, uint64: u
 		return returnErrorCode(self, SQLITE_MISUSE, "invalid stmt_handle")
 	}
 	//------------------------------------------------------------
-	rc := sqlite3_bind_int64(stmt_handle, iCol, i64(uint64))
+	rc := sqlite3_bind_int64(stmt_handle, iCol, transmute(i64)uint64)
 	//------------------------------------------------------------
 	if (rc != SQLITE_OK) {
 		return returnErrorCode(self, rc, sqliteErrmsg(self))
@@ -445,7 +445,7 @@ sqliteColumnInt64 :: proc(_: ^Self, stmt_handle: ^rawptr, iCol: i32) -> i64 {
 //--------------------------------------------------------------------------------
 sqliteColumnUInt64 :: proc(_: ^Self, stmt_handle: ^rawptr, iCol: i32) -> u64 {
 	//------------------------------------------------------------
-	return u64(sqlite3_column_int64(stmt_handle, iCol))
+	return transmute(u64)(sqlite3_column_int64(stmt_handle, iCol))
 	//------------------------------------------------------------
 }
 //--------------------------------------------------------------------------------
@@ -558,7 +558,7 @@ isUnsigned :: proc(self: ^Self, stmt_handle: ^rawptr, iCol: i32) -> bool {
 //--------------------------------------------------------------------------------
 toLower :: proc(data: ^string) {
 	//------------------------------------------------------------
-	bytes := transmute([]byte)data^
+	bytes := transmute([]u8)data^
 	for index in 0 ..< len(bytes) {
 		switch bytes[index] {
 		case 'A' ..= 'Z':
@@ -886,15 +886,17 @@ updateSQLiteColumn :: proc(
 	integer := sqlite3_column_int64(stmt_handle, iCol)
 	float := sqlite3_column_double(stmt_handle, iCol)
 	//------------------------------------------------------------
+	is_unsigned := isUnsigned(self, stmt_handle, iCol)
+	//------------------------------------------------------------
 	sqlite_column^ = SQLiteColumn {
 		index       = index,
 		name        = name,
 		column_type = column_type,
-		ptr         = ptr,
-		len         = len,
-		uint64      = u64(integer),
+		is_unsigned = is_unsigned,
 		integer     = integer,
 		float       = float,
+		ptr         = ptr,
+		len         = len,
 	}
 	//------------------------------------------------------------
 	return nil
@@ -925,52 +927,48 @@ getSQLiteRow :: proc(
 		return returnError(self, SQLITE_ERROR, sqliteErrmsg(self), .ZeroColumnCount)
 	}
 	//------------------------------------------------------------
-	{
+	type_id := typeid_of(T)
+	//------------------------------------------------------------
+	// field_count := reflect.struct_field_count(type_id)
+	// if field_count != column_count do return .InvalidFieldCount
+	//------------------------------------------------------------
+	for index := 0; index < column_count; index += 1 {
 		//------------------------------------------------------------
-		id := typeid_of(T)
+		iCol := i32(index)
 		//------------------------------------------------------------
-		// field_count := reflect.struct_field_count(id)
-		// if field_count != column_count do return .InvalidFieldCount
+		name_ptr := sqlite3_column_name(stmt_handle, iCol)
+		name := name_ptr != nil ? string(name_ptr) : ""
 		//------------------------------------------------------------
-		for index := 0; index < column_count; index += 1 {
+		field := reflect.struct_field_by_name(type_id, name)
+		//------------------------------------------------------------
+		if field.name == name {
 			//------------------------------------------------------------
-			iCol := i32(index)
+			integer := sqlite3_column_int64(stmt_handle, iCol)
+			float := sqlite3_column_double(stmt_handle, iCol)
+			ptr := cast([^]u8)(sqlite3_column_blob(stmt_handle, iCol))
+			len := int(sqlite3_column_bytes(stmt_handle, iCol))
 			//------------------------------------------------------------
-			name_ptr := sqlite3_column_name(stmt_handle, iCol)
-			name := name_ptr != nil ? string(name_ptr) : ""
+			uint64 := u64(integer)
 			//------------------------------------------------------------
-			field := reflect.struct_field_by_name(id, name)
+			dst := rawptr(uintptr(row) + field.offset)
 			//------------------------------------------------------------
-			if field.name == name {
-				//------------------------------------------------------------
-				integer := sqlite3_column_int64(stmt_handle, iCol)
-				float := sqlite3_column_double(stmt_handle, iCol)
-				ptr := cast([^]u8)(sqlite3_column_blob(stmt_handle, iCol))
-				len := int(sqlite3_column_bytes(stmt_handle, iCol))
-				//------------------------------------------------------------
-				uint64 := u64(integer)
-				//------------------------------------------------------------
-				dst := rawptr(uintptr(row) + field.offset)
-				//------------------------------------------------------------
-				switch field.type.id {
-				case typeid_of(u64):
-					mem.copy(dst, &uint64, size_of(u64))
-				case typeid_of(i64):
-					mem.copy(dst, &integer, size_of(i64))
-				case typeid_of(f64):
-					mem.copy(dst, &float, size_of(f64))
-				case typeid_of(string):
-					text_bytes := make([]u8, len, allocator) or_return
-					copy(text_bytes, (cast([^]u8)ptr)[:len])
-					(^[]u8)(dst)^ = text_bytes
-				case typeid_of([]u8):
-					blob := make([]u8, len, allocator) or_return
-					copy(blob, (cast([^]u8)ptr)[:len])
-					(^[]u8)(dst)^ = blob
-				case:
-					return .InvalidFieldType
-				}
-				//------------------------------------------------------------
+			switch field.type.id {
+			case typeid_of(u64):
+				mem.copy(dst, &uint64, size_of(u64))
+			case typeid_of(i64):
+				mem.copy(dst, &integer, size_of(i64))
+			case typeid_of(f64):
+				mem.copy(dst, &float, size_of(f64))
+			case typeid_of(string):
+				text_bytes := make([]u8, len, allocator) or_return
+				copy(text_bytes, (cast([^]u8)ptr)[:len])
+				(^[]u8)(dst)^ = text_bytes
+			case typeid_of([]u8):
+				blob := make([]u8, len, allocator) or_return
+				copy(blob, (cast([^]u8)ptr)[:len])
+				(^[]u8)(dst)^ = blob
+			case:
+				return .InvalidFieldType
 			}
 			//------------------------------------------------------------
 		}
@@ -1153,9 +1151,9 @@ updateRow :: proc(
 	err: Error,
 ) {
 	//------------------------------------------------------------
-	id := typeid_of(T)
+	type_id := typeid_of(T)
 	//------------------------------------------------------------
-	// field_count := reflect.struct_field_count(id)
+	// field_count := reflect.struct_field_count(type_id)
 	// if field_count != len(sqlite_columns) do return .InvalidFieldCount
 	//------------------------------------------------------------
 	for index := 0; index < len(sqlite_columns); index += 1 {
@@ -1164,7 +1162,7 @@ updateRow :: proc(
 		//------------------------------------------------------------
 		name := string(sqlite_column.name)
 		//------------------------------------------------------------
-		field := reflect.struct_field_by_name(id, name)
+		field := reflect.struct_field_by_name(type_id, name)
 		//------------------------------------------------------------
 		if field.name == name {
 			//------------------------------------------------------------
@@ -1172,7 +1170,7 @@ updateRow :: proc(
 			//------------------------------------------------------------
 			switch field.type.id {
 			case typeid_of(u64):
-				mem.copy(dst, &sqlite_column.uint64, size_of(u64))
+				mem.copy(dst, &sqlite_column.integer, size_of(u64))
 			case typeid_of(i64):
 				mem.copy(dst, &sqlite_column.integer, size_of(i64))
 			case typeid_of(f64):
@@ -1214,7 +1212,8 @@ updateRowMap :: proc(
 			err = .UnknownColumnType
 
 		case .SQLITE_INTEGER:
-			row_map[key] = sqlite_column.unsigned ? sqlite_column.uint64 : sqlite_column.integer
+			row_map[key] =
+				sqlite_column.is_unsigned ? u64(sqlite_column.integer) : sqlite_column.integer
 
 		case .SQLITE_FLOAT:
 			row_map[key] = sqlite_column.float
@@ -1231,6 +1230,9 @@ updateRowMap :: proc(
 
 		case .SQLITE_NULL:
 			row_map[key] = nil
+
+		case:
+			err = .UnknownColumnType
 		}
 		//------------------------------------------------------------
 	}
@@ -1244,29 +1246,31 @@ u32Len :: proc(value: $T) -> u32 {return u32(len(value))}
 i64Len :: proc(value: $T) -> i64 {return i64(len(value))}
 u64Len :: proc(value: $T) -> u64 {return u64(len(value))}
 //--------------------------------------------------------------------------------
-ptrToBytes :: proc(ptr: [^]byte, #any_int len: int) -> []byte {return ptr[:len]}
-rawptrToBytes :: proc(ptr: rawptr, #any_int len: int) -> []byte {return (cast([^]byte)ptr)[:len]}
-cstringToBytes :: proc(ptr: cstring, #any_int len: int = 0) -> []byte {
-	if ptr == nil do return []byte{}
+ptrToBytes :: proc(ptr: [^]u8, #any_int len: int) -> []u8 {return ptr[:len]}
+rawptrToBytes :: proc(ptr: rawptr, #any_int len: int) -> []u8 {return (cast([^]u8)ptr)[:len]}
+cstringToBytes :: proc(ptr: cstring, #any_int len: int = 0) -> []u8 {
+	if ptr == nil do return []u8{}
 	bytes_len := int(len)
-	bytes := cast([^]byte)ptr
+	bytes := cast([^]u8)ptr
 	if len == 0 do for bytes[bytes_len] != 0 do bytes_len += 1
 	return bytes[:bytes_len]
 }
+//--------------------------------------------------------------------------------
+stringToBytes :: proc(s: string) -> []u8 {return transmute([]u8)s}
 //--------------------------------------------------------------------------------
 bytesToString :: proc {
 	bytesSliceToString,
 	ptrToString,
 	rawptrToString,
 }
-bytesSliceToString :: proc(b: []byte) -> string {
+bytesSliceToString :: proc(b: []u8) -> string {
 	return string(b)
 }
-ptrToString :: proc(ptr: ^[]byte, #any_int len: int) -> string {
+ptrToString :: proc(ptr: ^[]u8, #any_int len: int) -> string {
 	return ptr == nil ? "" : string(ptr[:len])
 }
 rawptrToString :: proc(ptr: rawptr, #any_int len: int) -> string {
-	return ptr == nil ? "" : string((cast([^]byte)ptr)[:len])
+	return ptr == nil ? "" : string((cast([^]u8)ptr)[:len])
 }
 //--------------------------------------------------------------------------------
 bytesToCString :: proc {
@@ -1274,7 +1278,7 @@ bytesToCString :: proc {
 	ptrToCString,
 	rawptrToCString,
 }
-bytesSliceToCString :: proc(b: []byte) -> cstring {
+bytesSliceToCString :: proc(b: []u8) -> cstring {
 	if len(b) == 0 do return nil
 	b[len(b) - 1] = 0 // force last byte to be zero
 	return cstring(&b[0])
@@ -1380,8 +1384,7 @@ SQLiteColumn :: struct {
 	index:       int,
 	name:        cstring,
 	column_type: SQLiteColumnType,
-	unsigned:    bool,
-	uint64:      u64,
+	is_unsigned: bool,
 	integer:     i64,
 	float:       f64,
 	ptr:         [^]u8,

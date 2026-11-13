@@ -223,7 +223,6 @@ main :: proc() {
 					column.column_type,
 					SQLiteColumnType.SQLITE_INTEGER,
 				)
-				ut.compareInteger("getSQLiteColumnsTable: uint64", column.uint64, 1)
 				ut.compareInteger("getSQLiteColumnsTable: integer", column.integer, 1)
 				//------------------------------------------------------------
 				column = table.sqlite_columns[1]
@@ -316,7 +315,7 @@ main :: proc() {
 			ut.compareBytes(
 				"querySQLiteColumns: blob",
 				ctx.fixed_rows[0].blob,
-				[]byte{'b', 'l', 'o', 'b', '1'},
+				[]u8{'b', 'l', 'o', 'b', '1'},
 			)
 		}
 
@@ -329,7 +328,7 @@ main :: proc() {
 			ut.compareBytes(
 				"querySQLiteColumns: blob",
 				ctx.fixed_rows[1].blob,
-				[]byte{'b', 'l', 'o', 'b', '2'},
+				[]u8{'b', 'l', 'o', 'b', '2'},
 			)
 		}
 
@@ -342,7 +341,7 @@ main :: proc() {
 			ut.compareBytes(
 				"querySQLiteColumns: blob",
 				ctx.fixed_rows[2].blob,
-				[]byte{'b', 'l', 'o', 'b', '3'},
+				[]u8{'b', 'l', 'o', 'b', '3'},
 			)
 		}
 		//------------------------------------------------------------
@@ -382,104 +381,6 @@ main :: proc() {
 	}
 	//--------------------------------------------------------------------------------
 	//################################################################################
-	//--------------------------------------------------------------------------------
-	// populate SQLiteColumns
-	//--------------------------------------------------------------------------------
-	text := "text1"
-	blob := "blob1"
-	//--------------------------------------------------------------------------------
-	sqlite_columns := [7]SQLiteColumn {
-		{index = 0, name = "id", column_type = .SQLITE_INTEGER, integer = 1},
-		{
-			index = 1,
-			name = "uint64",
-			column_type = .SQLITE_INTEGER,
-			unsigned = true,
-			uint64 = 0xFFFF_FFFF_FFFF_FFFF,
-		},
-		{index = 2, name = "integer", column_type = .SQLITE_INTEGER, integer = 1},
-		{index = 3, name = "float", column_type = .SQLITE_FLOAT, float = 1.1},
-		{
-			index = 4,
-			name = "text",
-			column_type = .SQLITE_TEXT,
-			ptr = raw_data(text),
-			len = len(text),
-		},
-		{
-			index = 5,
-			name = "blob",
-			column_type = .SQLITE_BLOB,
-			ptr = raw_data(blob),
-			len = len(blob),
-		},
-		{index = 6, name = "blob_nullable", column_type = .SQLITE_NULL},
-	}
-	//--------------------------------------------------------------------------------
-	// updateRow
-	//--------------------------------------------------------------------------------
-	{
-		//------------------------------------------------------------
-		fixed_row := FixedRow{}
-		//------------------------------------------------------------
-		err := updateRow(&fixed_row, sqlite_columns[:], context.allocator)
-		//------------------------------------------------------------
-		ut.compareError("updateRow", err, nil)
-		//------------------------------------------------------------
-		ut.compareInteger("updateRow", fixed_row.id, 1)
-		ut.compareInteger("updateRow", fixed_row.uint64, 0xFFFF_FFFF_FFFF_FFFF)
-		ut.compareInteger("updateRow", fixed_row.integer, 1)
-		ut.compareFloat("updateRow", fixed_row.float, 1.1)
-		ut.compareString("updateRow", fixed_row.text, "text1")
-		ut.compareBytes("updateRow", fixed_row.blob, []byte{'b', 'l', 'o', 'b', '1'})
-		ut.compareNull("updateRow", fixed_row.blob_nullable)
-		//------------------------------------------------------------
-		if err == nil {
-			delete(fixed_row.blob, context.allocator)
-			delete(fixed_row.text, context.allocator)
-		}
-		//------------------------------------------------------------
-	}
-	//--------------------------------------------------------------------------------
-	// updateRowMap
-	//--------------------------------------------------------------------------------
-	{
-		//------------------------------------------------------------
-		fixed_row_map := make(map[string]SQLiteColumnValue, context.allocator)
-		//------------------------------------------------------------
-		err := updateRowMap(&fixed_row_map, sqlite_columns[:], context.allocator)
-		//------------------------------------------------------------
-		ut.compareError("updateRowMap", err, nil)
-		//------------------------------------------------------------
-		id, _ := fixed_row_map["id"].(i64)
-		uint64, _ := fixed_row_map["uint64"].(u64)
-		integer, _ := fixed_row_map["integer"].(i64)
-		float, _ := fixed_row_map["float"].(f64)
-		text, _ := fixed_row_map["text"].(string)
-		blob, _ := fixed_row_map["blob"].([]u8)
-		blob_nullable, _ := fixed_row_map["blob_nullable"].([]u8)
-		//------------------------------------------------------------
-		ut.compareInteger("updateRowMap", id, 1)
-		ut.compareInteger("updateRowMap", uint64, 0xFFFF_FFFF_FFFF_FFFF)
-		ut.compareInteger("updateRowMap", integer, 1)
-		ut.compareFloat("updateRowMap", float, 1.1)
-		ut.compareString("updateRowMap", text, "text1")
-		ut.compareBytes("updateRowMap", blob, []byte{'b', 'l', 'o', 'b', '1'})
-		ut.compareNull("updateRow", blob_nullable)
-		//------------------------------------------------------------
-		if err == nil {
-			for _, value in fixed_row_map {
-				#partial switch v in value {
-				case string:
-					delete(v, context.allocator)
-				case []u8:
-					delete(v, context.allocator)
-				}
-			}
-			delete(fixed_row_map)
-		}
-		//--------------------------------------------------------------------------------
-	}
 	//--------------------------------------------------------------------------------
 	// sqlitePrepare / sqliteClearBindings / sqliteBind* / sqliteStep / sqliteFinalize
 	//--------------------------------------------------------------------------------
@@ -557,7 +458,7 @@ main :: proc() {
 		//------------------------------------------------------------
 		if rc == SQLITE_OK {
 			//------------------------------------------------------------
-			rc = sqliteBindUInt64(&sqlitedb, stmt_handle, 1, 3)
+			rc = sqliteBindUInt64(&sqlitedb, stmt_handle, 1, 0xFFFF_FFFF_FFFF_FFFF)
 			ut.compareInteger("sqliteBindUInt64: rc", rc, SQLITE_OK)
 			ut.compareCString("sqliteBindUInt64: errmsg", errorMessage(&sqlitedb), "")
 			//------------------------------------------------------------
@@ -705,19 +606,19 @@ main :: proc() {
 				ut.compareBytes(
 					"sqliteColumnText",
 					cstringToBytes(text_ptr, text_len),
-					[]byte{'t', 'e', 'x', 't', '1'},
+					[]u8{'t', 'e', 'x', 't', '1'},
 				)
 				ut.compareString("sqliteTextString", text_string, "text1")
 				ut.compareCString("sqliteTextCString", text_cstring, "text1")
 				ut.compareBytes(
 					"sqliteColumnBlob",
 					rawptrToBytes(blob_ptr, blob_len),
-					[]byte{'b', 'l', 'o', 'b', '1'},
+					[]u8{'b', 'l', 'o', 'b', '1'},
 				)
 				ut.compareBytes(
 					"sqliteColumnBlob",
 					rawptrToBytes(blob_nullable_ptr, blob_nullable_len),
-					[]byte{},
+					[]u8{},
 				)
 				ut.compareString("sqliteBlobString", blob_nullable_string, "")
 				ut.compareCString("sqliteBlobCString", blob_nullable_cstring, "")
@@ -805,21 +706,21 @@ main :: proc() {
 				ut.compareBytes(
 					"sqliteColumnText",
 					cstringToBytes(text_ptr, text_len),
-					[]byte{'t', 'e', 'x', 't', '2'},
+					[]u8{'t', 'e', 'x', 't', '2'},
 				)
 				ut.compareString("sqliteTextString", text_string, "text2")
 				ut.compareCString("sqliteTextCString", text_cstring, "text2")
 				ut.compareBytes(
 					"sqliteColumnBlob",
 					rawptrToBytes(blob_ptr, blob_len),
-					[]byte{'b', 'l', 'o', 'b', '2'},
+					[]u8{'b', 'l', 'o', 'b', '2'},
 				)
 				ut.compareString("sqliteBlobString", blob_string, "blob2")
 				ut.compareCString("sqliteBlobCString", blob_cstring, "blob2")
 				ut.compareBytes(
 					"sqliteColumnBlob",
 					rawptrToBytes(blob_nullable_ptr, blob_nullable_len),
-					[]byte{},
+					[]u8{},
 				)
 				ut.compareString("sqliteBlobString", blob_nullable_string, "")
 				ut.compareCString("sqliteBlobCString", blob_nullable_cstring, "")
@@ -896,13 +797,13 @@ main :: proc() {
 				//------------------------------------------------------------
 				// sqliteColumn*
 				ut.compareInteger("sqliteColumnInt64", id, 3)
-				ut.compareInteger("sqliteColumnUInt64", uint64, 3)
+				ut.compareInteger("sqliteColumnUInt64", uint64, 0xFFFF_FFFF_FFFF_FFFF)
 				ut.compareInteger("sqliteColumnInt64", integer, 3)
 				ut.compareFloat("sqliteColumnDouble", float, 3.3)
 				ut.compareBytes(
 					"sqliteColumnText",
 					cstringToBytes(text_ptr, text_len),
-					[]byte{'t', 'e', 'x', 't', '3'},
+					[]u8{'t', 'e', 'x', 't', '3'},
 				)
 				ut.compareString("sqliteTextString", text_string, "text3")
 				ut.compareCString("sqliteTextCString", text_cstring, "text3")
@@ -910,7 +811,7 @@ main :: proc() {
 				ut.compareBytes(
 					"sqliteColumnBlob",
 					rawptrToBytes(blob_ptr, blob_len),
-					[]byte{'b', 'l', 'o', 'b', '3'},
+					[]u8{'b', 'l', 'o', 'b', '3'},
 				)
 				ut.compareString("sqliteBlobString", blob_string, "blob3")
 				ut.compareCString("sqliteBlobCString", blob_cstring, "blob3")
@@ -969,7 +870,7 @@ main :: proc() {
 			ut.compareInteger("getSQLiteRow", fixed_row.integer, 1)
 			ut.compareFloat("getSQLiteRow", fixed_row.float, 1.1)
 			ut.compareString("getSQLiteRow", fixed_row.text, "text1")
-			ut.compareBytes("getSQLiteRow", fixed_row.blob, []byte{'b', 'l', 'o', 'b', '1'})
+			ut.compareBytes("getSQLiteRow", fixed_row.blob, []u8{'b', 'l', 'o', 'b', '1'})
 			//------------------------------------------------------------
 			if err == nil {
 				delete(fixed_row.text, context.allocator)
@@ -1013,6 +914,106 @@ main :: proc() {
 		//------------------------------------------------------------
 		sqliteFinalize(&sqlitedb, stmt_handle)
 		//------------------------------------------------------------
+	}
+	//--------------------------------------------------------------------------------
+	//################################################################################
+	//--------------------------------------------------------------------------------
+	// populate SQLiteColumns
+	//--------------------------------------------------------------------------------
+	text := "text1"
+	blob := "blob1"
+	//--------------------------------------------------------------------------------
+	sqlite_columns := [7]SQLiteColumn {
+		{index = 0, name = "id", column_type = .SQLITE_INTEGER, integer = 1},
+		{
+			index = 1,
+			name = "uint64",
+			column_type = .SQLITE_INTEGER,
+			is_unsigned = true,
+			integer = transmute(i64)u64(0xFFFF_FFFF_FFFF_FFFF),
+		},
+		{index = 2, name = "integer", column_type = .SQLITE_INTEGER, integer = 1},
+		{index = 3, name = "float", column_type = .SQLITE_FLOAT, float = 1.1},
+		{
+			index = 4,
+			name = "text",
+			column_type = .SQLITE_TEXT,
+			ptr = raw_data(text),
+			len = len(text),
+		},
+		{
+			index = 5,
+			name = "blob",
+			column_type = .SQLITE_BLOB,
+			ptr = raw_data(blob),
+			len = len(blob),
+		},
+		{index = 6, name = "blob_nullable", column_type = .SQLITE_NULL},
+	}
+	//--------------------------------------------------------------------------------
+	// updateRow
+	//--------------------------------------------------------------------------------
+	{
+		//------------------------------------------------------------
+		fixed_row := FixedRow{}
+		//------------------------------------------------------------
+		err := updateRow(&fixed_row, sqlite_columns[:], context.allocator)
+		//------------------------------------------------------------
+		ut.compareError("updateRow", err, nil)
+		//------------------------------------------------------------
+		ut.compareInteger("updateRow", fixed_row.id, 1)
+		ut.compareInteger("updateRow", fixed_row.uint64, 0xFFFF_FFFF_FFFF_FFFF)
+		ut.compareInteger("updateRow", fixed_row.integer, 1)
+		ut.compareFloat("updateRow", fixed_row.float, 1.1)
+		ut.compareString("updateRow", fixed_row.text, "text1")
+		ut.compareBytes("updateRow", fixed_row.blob, []u8{'b', 'l', 'o', 'b', '1'})
+		ut.compareNull("updateRow", fixed_row.blob_nullable)
+		//------------------------------------------------------------
+		if err == nil {
+			delete(fixed_row.blob, context.allocator)
+			delete(fixed_row.text, context.allocator)
+		}
+		//------------------------------------------------------------
+	}
+	//--------------------------------------------------------------------------------
+	// updateRowMap
+	//--------------------------------------------------------------------------------
+	{
+		//------------------------------------------------------------
+		fixed_row_map := make(map[string]SQLiteColumnValue, context.allocator)
+		//------------------------------------------------------------
+		err := updateRowMap(&fixed_row_map, sqlite_columns[:], context.allocator)
+		//------------------------------------------------------------
+		ut.compareError("updateRowMap", err, nil)
+		//------------------------------------------------------------
+		id, _ := fixed_row_map["id"].(i64)
+		uint64, _ := fixed_row_map["uint64"].(u64)
+		integer, _ := fixed_row_map["integer"].(i64)
+		float, _ := fixed_row_map["float"].(f64)
+		text, _ := fixed_row_map["text"].(string)
+		blob, _ := fixed_row_map["blob"].([]u8)
+		blob_nullable, _ := fixed_row_map["blob_nullable"].([]u8)
+		//------------------------------------------------------------
+		ut.compareInteger("updateRowMap", id, 1)
+		ut.compareInteger("updateRowMap", uint64, 0xFFFF_FFFF_FFFF_FFFF)
+		ut.compareInteger("updateRowMap", integer, 1)
+		ut.compareFloat("updateRowMap", float, 1.1)
+		ut.compareString("updateRowMap", text, "text1")
+		ut.compareBytes("updateRowMap", blob, []u8{'b', 'l', 'o', 'b', '1'})
+		ut.compareNull("updateRow", blob_nullable)
+		//------------------------------------------------------------
+		if err == nil {
+			for _, value in fixed_row_map {
+				#partial switch v in value {
+				case string:
+					delete(v, context.allocator)
+				case []u8:
+					delete(v, context.allocator)
+				}
+			}
+			delete(fixed_row_map)
+		}
+		//--------------------------------------------------------------------------------
 	}
 	//--------------------------------------------------------------------------------
 	//################################################################################
@@ -1080,7 +1081,7 @@ queryCallback :: proc "c" (
 		case "id":
 			fixed_row.id = column.integer
 		case "uint64":
-			fixed_row.uint64 = column.uint64
+			fixed_row.uint64 = transmute(u64)column.integer
 		case "integer":
 			fixed_row.integer = column.integer
 		case "float":
@@ -1092,7 +1093,6 @@ queryCallback :: proc "c" (
 				fixed_row.blob, _ = make([]u8, column.len, context.allocator)
 				copy(fixed_row.blob[:], column.ptr[:column.len])
 			}
-		case:
 		}
 		//----------------------------------------
 	}
