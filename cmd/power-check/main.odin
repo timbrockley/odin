@@ -20,7 +20,7 @@ PowerStatus :: enum {
 	Battery,
 }
 
-Error :: union {
+Error :: union #shared_nil {
 	PowerCheckError,
 	os.Error,
 	mem.Allocator_Error,
