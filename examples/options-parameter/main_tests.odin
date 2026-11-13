@@ -1,5 +1,6 @@
 package main
 
+import "core:strings"
 //------------------------------------------------------------
 
 import "core:testing"
@@ -7,7 +8,7 @@ import "core:testing"
 //------------------------------------------------------------
 
 @(test)
-test_main :: proc(t: ^testing.T) {
+test_options1 :: proc(t: ^testing.T) {
 	//------------------------------------------------------------
 	options: OptionsResult
 	err: Error
@@ -30,6 +31,16 @@ test_main :: proc(t: ^testing.T) {
 	options = newOptions({})
 	testing.expect_value(t, options.encoding, "base64")
 	testing.expect_value(t, options.mix_chars, false)
+	//------------------------------------------------------------
+}
+
+//------------------------------------------------------------
+
+@(test)
+test_options2 :: proc(t: ^testing.T) {
+	//------------------------------------------------------------
+	options: OptionsResult
+	err: Error
 	//------------------------------------------------------------
 	default_options.encoding = ""
 	default_options.mix_chars = true
@@ -59,5 +70,36 @@ test_main :: proc(t: ^testing.T) {
 	//------------------------------------------------------------
 }
 
+//------------------------------------------------------------
+
+@(test)
+test_options3 :: proc(t: ^testing.T) {
+	//------------------------------------------------------------
+	{
+		Options :: struct {
+			encoding:  string,
+			mix_chars: bool,
+		}
+		options: Options
+
+		made_up_field := getOptionsValue(options, "made_up_field")
+		encoding, _ := getOptionsValue(options, "encoding").(string)
+		mix_chars, _ := getOptionsValue(options, "mix_chars").(bool)
+
+		testing.expect(t, made_up_field == nil)
+		testing.expect_value(t, encoding, "")
+		testing.expect_value(t, mix_chars, false)
+
+		options.encoding = "base64"
+		options.mix_chars = true
+
+		encoding, _ = getOptionsValue(options, "encoding").(string)
+		mix_chars, _ = getOptionsValue(options, "mix_chars").(bool)
+
+		testing.expect_value(t, encoding, "base64")
+		testing.expect_value(t, mix_chars, true)
+	}
+	//------------------------------------------------------------
+}
 
 //------------------------------------------------------------

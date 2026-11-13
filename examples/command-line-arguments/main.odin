@@ -16,7 +16,7 @@ Options :: struct {
 	output:  string `-o, --output, Output file`,
 }
 
-Error :: union {
+Error :: union #shared_nil {
 	ArgumentsError,
 	mem.Allocator_Error,
 }

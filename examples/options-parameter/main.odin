@@ -1,15 +1,15 @@
 package main
 
-//------------------------------------------------------------
+//--------------------------------------------------------------------------------
 // Copyright 2025 Tim Brockley. All rights reserved.
 // This software is licensed under the MIT License.
-//------------------------------------------------------------
+//--------------------------------------------------------------------------------
 import "core:fmt"
 import "core:mem"
 import "core:os"
 import "core:path/filepath"
 import "core:reflect"
-//------------------------------------------------------------
+//--------------------------------------------------------------------------------
 Error :: union {
 	ReflectError,
 }
@@ -38,13 +38,13 @@ default_options := OptionsResult {
 	encoding  = "",
 	mix_chars = true,
 }
-//------------------------------------------------------------
+//--------------------------------------------------------------------------------
 main :: proc() {
 	//---------------------------------------
 	fmt.printfln("%s: main function", filepath.base(os.args[0]))
 	//---------------------------------------
 }
-//------------------------------------------------------------
+//--------------------------------------------------------------------------------
 // hard coded version
 newOptions :: proc(options: OptionsUnion) -> OptionsResult {
 	return OptionsResult {
@@ -52,7 +52,7 @@ newOptions :: proc(options: OptionsUnion) -> OptionsResult {
 		mix_chars = options.mix_chars != nil ? options.mix_chars.? : default_options.mix_chars,
 	}
 }
-//------------------------------------------------------------
+//--------------------------------------------------------------------------------
 // reflect version
 newOptionsReflect :: proc(options: OptionsUnion) -> (OptionsResult, Error) {
 	//------------------------------------------------------------
@@ -76,20 +76,30 @@ newOptionsReflect :: proc(options: OptionsUnion) -> (OptionsResult, Error) {
 	return optionsResult, nil
 	//------------------------------------------------------------
 }
-//------------------------------------------------------------
-setOptionsValue :: proc(structInstance: ^$T, field_name: string, value: any) -> Error {
+//--------------------------------------------------------------------------------
+setOptionsValue :: proc(options: ^$T, field_name: string, value: any) -> Error {
 	//------------------------------------------------------------
-	struct_field := reflect.struct_field_by_name(typeid_of(T), field_name)
+	field := reflect.struct_field_by_name(typeid_of(T), field_name)
 	//------------------------------------------------------------
-	if struct_field.type == nil {return .InvalidStructType}
+	if field.type == nil {return .InvalidStructType}
 	//------------------------------------------------------------
 	if value == nil || value.data == nil {return .InvalidValue}
 	//------------------------------------------------------------
-	struct_field_ptr := rawptr(uintptr(structInstance) + struct_field.offset)
+	field_ptr := rawptr(uintptr(options) + field.offset)
 	//------------------------------------------------------------
-	mem.copy(struct_field_ptr, value.data, struct_field.type.size)
+	mem.copy(field_ptr, value.data, field.type.size)
 	//------------------------------------------------------------
 	return nil
 	//------------------------------------------------------------
 }
-//------------------------------------------------------------
+//--------------------------------------------------------------------------------
+getOptionsValue :: proc(options: $T, name: string) -> any {
+	//------------------------------------------------------------
+	field := reflect.struct_field_by_name(T, name)
+	//------------------------------------------------------------
+	if field.type == nil do return nil
+	//------------------------------------------------------------
+	return reflect.struct_field_value(options, field)
+	//------------------------------------------------------------
+}
+//--------------------------------------------------------------------------------

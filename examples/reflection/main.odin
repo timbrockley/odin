@@ -6,7 +6,7 @@ import "core:reflect"
 
 //------------------------------------------------------------
 
-Error :: union {
+Error :: union #shared_nil {
 	ReflectError,
 }
 
@@ -132,13 +132,13 @@ main :: proc() {
 
 //------------------------------------------------------------
 
-setStructFieldValue :: proc(struct_instance: ^$T, field_name: string, value: any) -> Error {
+setStructFieldValue :: proc(struct_ptr: ^$T, field_name: string, value: any) -> Error {
 	//----------------------------------------
 	struct_field := reflect.struct_field_by_name(typeid_of(T), field_name)
 	//----------------------------------------
 	if struct_field.type == nil {return .FieldNotFound}
 	//----------------------------------------
-	struct_field_ptr := rawptr(uintptr(struct_instance) + struct_field.offset)
+	struct_field_ptr := rawptr(uintptr(struct_ptr) + struct_field.offset)
 	//----------------------------------------
 	if value == nil || value.data == nil {
 		//----------------------------------------
@@ -158,17 +158,17 @@ setStructFieldValue :: proc(struct_instance: ^$T, field_name: string, value: any
 
 //------------------------------------------------------------
 
-setStructField :: proc(row: ^$T, field: reflect.Struct_Field, value: any) -> Error {
+setStructField :: proc(struct_ptr: ^$T, field: reflect.Struct_Field, value: any) -> Error {
 	//------------------------------------------------------------
-	row_field_ptr := rawptr(uintptr(row) + field.offset)
+	struct_field_ptr := rawptr(uintptr(struct_ptr) + field.offset)
 	//------------------------------------------------------------
 	if value == nil || value.data == nil {
-		mem.set(row_field_ptr, 0, field.type.size)
+		mem.set(struct_field_ptr, 0, field.type.size)
 	} else {
 		if field.type.id != value.id {
 			return .FieldTypeMismatch
 		}
-		mem.copy(row_field_ptr, value.data, field.type.size)
+		mem.copy(struct_field_ptr, value.data, field.type.size)
 	}
 	//------------------------------------------------------------
 	return nil

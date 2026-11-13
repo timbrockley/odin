@@ -7,7 +7,6 @@ import "core:reflect"
 null :: struct {}
 //------------------------------------------------------------
 ColumnValue1 :: union {
-	null,
 	i64,
 	f64,
 	string,
@@ -36,8 +35,14 @@ main :: proc() {
 	//------------------------------------------------------------
 	{
 		//------------------------------------------------------------
-		cv1: ColumnValue1 = 1
+		// cv1 := ColumnValue1{}
+		// cv1: ColumnValue1 = {}
+		// cv1: ColumnValue1 = nil
+		cv1: ColumnValue1
+		fmt.println(cv1 == nil)
 
+		cv1 = 1
+		fmt.println(cv1 == nil)
 		fmt.printfln("reflect.union_variant_typeid: %v", reflect.union_variant_typeid(cv1))
 
 		variant := reflect.get_union_variant(cv1) // any{data, typeid_of(i64)}
@@ -51,6 +56,13 @@ main :: proc() {
 	//------------------------------------------------------------
 	{
 		//------------------------------------------------------------
+		// null_value := ColumnValue2{}
+		// null_value: ColumnValue2 = {}
+		// null_value: ColumnValue2
+		null_value := ColumnValue2 {
+			type  = .null,
+			value = nil,
+		}
 		integer_value := ColumnValue2 {
 			type  = .integer,
 			value = i64(42),
@@ -67,15 +79,12 @@ main :: proc() {
 			type  = .bytes,
 			value = []u8{0x01, 0x02, 0x03},
 		}
-		null_value := ColumnValue2 {
-			type = .null,
-		}
 		//------------------------------------------------------------
+		fmt.println(null_value)
 		fmt.println(integer_value)
 		fmt.println(float_value)
 		fmt.println(string_value)
 		fmt.println(bytes_value)
-		fmt.println(null_value)
 		//------------------------------------------------------------
 	}
 	//------------------------------------------------------------
