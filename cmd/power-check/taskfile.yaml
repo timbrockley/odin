@@ -32,4 +32,8 @@ tasks:
 
   run:
     dir: "{{.OUTPUT_PATH}}"
-    cmd: ./{{.OUTPUT}}
+    cmd: odin run ../main.odin -file
+
+  test:
+    dir: "{{.OUTPUT_PATH}}"
+    cmd: odin test ../main.odin -file

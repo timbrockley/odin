@@ -25,7 +25,7 @@ tasks:
       - test -s libs/unittest || ln -s ../../../../unittest/ libs/
       - cp ../database-mysql.odin .
       - cp ../main-mysql.odin .
-      # - odin build . -out:main-mysql -debug
+      - odin build . -out:main-mysql -debug
 
   run:
     dir: "{{.OUTPUT_PATH}}"

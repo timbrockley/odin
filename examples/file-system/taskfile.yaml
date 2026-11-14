@@ -15,6 +15,17 @@ tasks:
     cmds:
       - odin build ../main.odin -file -out:main -o:speed
 
+  debug:
+    dir: "{{.OUTPUT_PATH}}"
+    cmds:
+      - odin build ../main.odin -file -out:main -debug
+
   run:
     dir: "{{.OUTPUT_PATH}}"
-    cmd: ./main
+    cmds:
+      - odin run ../main.odin -file
+
+  test:
+    dir: "{{.OUTPUT_PATH}}"
+    cmds:
+      - odin run ../main.odin -file
